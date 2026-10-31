@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.svg" alt="my-claude-mods Logo" width="120" />
+  <img src="icon.png" alt="my-claude-mods Logo" width="120" />
 </p>
 
 # My Claude Mods
