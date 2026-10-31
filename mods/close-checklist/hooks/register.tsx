@@ -1,0 +1,166 @@
+import { atom, read, update } from 'claude-code'
+import type { EngineInterface as Engine, Register, ToolCallInput } from 'claude-code'
+
+import type { ChecklistSection } from '../types'
+import {
+  TRACKED_RESOURCE_TOOLS,
+  buildSections,
+  emptyTracked,
+  lingeringItems,
+  scratchpadDir,
+  summarize,
+  trackBackground,
+  trackCommand,
+  trackFile,
+  trackResource,
+  trackShellWrites,
+  withDefaults,
+} from './checklist'
+import { collectDocker, collectGit } from './collect'
+import type { RunOutcome } from './collect'
+
+const PANE = 'close-checklist'
+const TITLE = 'Before Closing'
+const SHORT_TIMEOUT_MS = 8000
+const SHELL_TOOLS = new Set(['Bash', 'PowerShell'])
+const FILE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit'])
+
+const tracked = atom({ plugin: 'close-checklist', key: 'tracked' } as const, emptyTracked())
+const sections = atom({ plugin: 'close-checklist', key: 'sections' } as const, null)
+
+const runner =
+  ($: Engine) =>
+  async (argv: string[], cwd?: string): Promise<RunOutcome> => {
+    try {
+      const result = await $.process.run(argv, { cwd, timeoutMs: SHORT_TIMEOUT_MS })
+      return result.exitCode === 0 ? { status: 'ok', stdout: result.stdout as string } : { status: 'failed' }
+    } catch {
+      return { status: 'error' }
+    }
+  }
+
+async function countScratchpad($: Engine, cwd: string): Promise<number | null> {
+  const temp = (await $.env.get('TEMP')) as string | undefined
+  if (temp === undefined) return null
+  try {
+    const entries = await $.fs.list(scratchpadDir(temp, cwd, await $.session.id()))
+    return entries.length
+  } catch {
+    return null
+  }
+}
+
+async function collectSections($: Engine): Promise<ChecklistSection[]> {
+  const cwd = (await $.session.cwd()) as string
+  const state = await read($, tracked)
+  const run = runner($)
+  const existing: string[] = []
+  for (const file of state.files) if (await $.fs.exists(file)) existing.push(file)
+  return buildSections({
+    git: await collectGit(run, cwd),
+    docker: await collectDocker(run, state),
+    scratchFiles: await countScratchpad($, cwd),
+    files: existing,
+    lingering: lingeringItems(withDefaults(state)),
+  })
+}
+
+async function refresh($: Engine): Promise<void> {
+  const fresh = await collectSections($).catch(() => null)
+  await update($, sections, () => fresh)
+}
+
+async function ignoredRoots($: Engine): Promise<string[]> {
+  const roots: string[] = []
+  const temp = (await $.env.get('TEMP')) as string | undefined
+  const home = (await $.env.get('USERPROFILE')) as string | undefined
+  if (temp !== undefined) roots.push(temp)
+  if (home !== undefined) roots.push(`${home}/.claude`)
+  return roots
+}
+
+async function trackToolCall($: Engine, e: ToolCallInput): Promise<void> {
+  const cwd = (await $.session.cwd()) as string
+  const input = e as unknown as Record<string, unknown>
+  if (FILE_TOOLS.has(e.tool)) {
+    const roots = await ignoredRoots($)
+    const path = String(input.file_path ?? input.notebook_path ?? '')
+    await update($, tracked, state => trackFile(withDefaults(state), path, cwd, roots))
+  } else if (SHELL_TOOLS.has(e.tool)) {
+    const roots = await ignoredRoots($)
+    const command = String(input.command ?? '')
+    await update($, tracked, state => {
+      const next = trackShellWrites(trackCommand(withDefaults(state), command, cwd), command, cwd, roots)
+      return input.run_in_background === true ? trackBackground(next, command) : next
+    })
+  } else {
+    await update($, tracked, state => trackResource(withDefaults(state), e.tool))
+  }
+}
+
+async function openPane($: Engine) {
+  await refresh($)
+  await $.ui.open({ id: PANE, title: TITLE })
+  return { text: 'Checklist panel opened.' }
+}
+
+export const register: Register = on => {
+  on('session.start', async ($, e, next) => {
+    await $.command.register({ name: 'checklist', description: 'Review pending items and resources before closing the session' })
+    await $.command.register({ name: 'cierre', description: 'Alias for /checklist' })
+    return next(e)
+  })
+
+  on('command.run', { command: 'checklist' }, async $ => openPane($))
+  on('command.run', { command: 'cierre' }, async $ => openPane($))
+
+  for (const tool of [...SHELL_TOOLS, ...FILE_TOOLS, ...TRACKED_RESOURCE_TOOLS]) {
+    on('tool.call', { tool }, async ($, e, next) => {
+      const result = await next(e)
+      if (result.deny === undefined && !result.isError) {
+        try {
+          await trackToolCall($, e)
+        } catch {
+          // Tracking is best effort
+        }
+      }
+      return result
+    }).catch(($, e, next) => next(e))
+  }
+
+  on('session.end', async ($, e, next) => {
+    if (e.reason !== 'clear') {
+      try {
+        const line = summarize(await collectSections($))
+        if (line !== undefined) $.ui.toast(line)
+      } catch {
+        // Session ending
+      }
+    }
+    return next(e)
+  })
+
+  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const list = await read($, sections)
+    return (
+      <Box flexDirection="column">
+        <Button label="↻ refresh" onPress={() => refresh($)} />
+        {list === null ? (
+          <Text dimColor>No data available. Click ↻ refresh.</Text>
+        ) : (
+          list.map(section => (
+            <Box key={section.title} flexDirection="column" marginTop={1}>
+              <Text bold>{section.title}</Text>
+              {section.items.map((item, index) => (
+                <Text key={`${index}:${item.text}`} color={item.ok ? 'green' : 'yellow'}>
+                  {item.ok ? '✓' : '⚠'} {item.text}
+                </Text>
+              ))}
+            </Box>
+          ))
+        )}
+      </Box>
+    )
+  })
+}

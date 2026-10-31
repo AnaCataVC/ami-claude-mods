@@ -1,0 +1,93 @@
+// Double-Blind Cleanroom isolation logic: enforces strict separation between
+// implementation workers and test-authoring workers.
+
+export const IMPLEMENTER = 'code-implementer-jr'
+export const TEST_WRITER = 'test-writer-jr'
+export const AMI_BUILDER = 'ami-cleanroom-builder'
+export const AMI_TESTER = 'ami-cleanroom-tester'
+
+export function isImplementerRole(agentType: string | undefined): boolean {
+  if (!agentType) return false
+  return (
+    agentType === IMPLEMENTER ||
+    agentType === AMI_BUILDER ||
+    /(^|[-_])(implementer|builder)([-_]|$)/i.test(agentType)
+  )
+}
+
+export function isTestWriterRole(agentType: string | undefined): boolean {
+  if (!agentType) return false
+  return (
+    agentType === TEST_WRITER ||
+    agentType === AMI_TESTER ||
+    /(^|[-_])(test-writer|tester|qa)([-_]|$)/i.test(agentType)
+  )
+}
+
+// Paths normalized to forward slashes before matching.
+const TEST_PATH = /(^|\/)(tests?|__tests__|spec)(\/|$)|(^|\/)test_[^\/]*$|_test\.[^\/]+$|\.(test|spec)\.[^\/]+$|(^|\/)conftest\.py$/i
+const SOURCE_FILE = /\.(py|pyi|ts|tsx|js|jsx|mjs|cjs|go|rs|java|kt|rb|cs|php|sql|sqlx|ps1|sh|c|cc|cpp|h|hpp|swift|scala|vue|svelte)$/i
+
+// Shell readers whose arguments expose file content, plus copiers and inline interpreters that can read as a side effect.
+const SHELL_READ = /\b(cat|type|head|tail|less|more|bat|gc|Get-Content|sed|awk|grep|rg|Select-String|cp|copy|Copy-Item|mv|Move-Item)\b|\b(python3?|py|node|deno|bun|perl|ruby|php)\s+-[cepE]\b/i
+// Git readers that print file content from a revision or from uncommitted changes.
+const GIT_CONTENT = /\bgit\s+(show|diff|log|blame|cat-file|stash\s+show)\b/i
+// `git show REV:path` is the sanctioned base-version read of the test writer; a diff or a patch log
+// would expose the production changes the implementer is writing in parallel.
+const GIT_BASE_READ = /\bgit\s+show\s+\S+/g
+const GIT_UNCOMMITTED_READ = /\bgit\s+(diff|stash\s+show)\b|\bgit\s+log\b[^;|&\n]*\s(-p|--patch)\b/i
+
+const WRITE_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit'])
+
+export type Call = { tool: string; input: Record<string, unknown> }
+
+const normalize = (path: string): string => path.split(String.fromCharCode(92)).join('/')
+export const isTestPath = (path: string): boolean => TEST_PATH.test(normalize(path))
+const isProductionSource = (path: string): boolean => SOURCE_FILE.test(path) && !isTestPath(path)
+
+function pathsOf(call: Call): string[] {
+  const { input } = call
+  if (call.tool === 'Read' || call.tool === 'Edit' || call.tool === 'Write') return [String(input.file_path ?? '')]
+  if (call.tool === 'NotebookEdit') return [String(input.notebook_path ?? '')]
+  if (call.tool === 'Grep') return [input.path, input.glob].filter((v): v is string => typeof v === 'string')
+  if (call.tool === 'Glob') return [input.pattern, input.path].filter((v): v is string => typeof v === 'string')
+  return []
+}
+
+const TOKEN_SEPARATORS = /[\s;|&<>"'():]+/
+
+function shellTokens(command: string, agentType: string): string[] {
+  const readsContent = SHELL_READ.test(command) || GIT_CONTENT.test(command)
+  if (!readsContent) return []
+  // The implementer gets no `git show` exemption: a committed test is still a test.
+  const visible = isTestWriterRole(agentType) ? command.replace(GIT_BASE_READ, ' ') : command
+  return visible.split(TOKEN_SEPARATORS).filter(Boolean)
+}
+
+export function denyReason(agentType: string | undefined, call: Call): string | undefined {
+  const isImpl = isImplementerRole(agentType)
+  const isTest = isTestWriterRole(agentType)
+  if (!isImpl && !isTest) return undefined
+
+  const isShell = call.tool === 'Bash' || call.tool === 'PowerShell'
+  const command = String(call.input.command ?? '')
+  const candidates = isShell ? shellTokens(command, agentType!) : pathsOf(call)
+  const verb = WRITE_TOOLS.has(call.tool) ? 'edit/write' : 'read'
+
+  if (isImpl) {
+    const hit = candidates.find(isTestPath)
+    return hit && `cleanroom: ${agentType} cannot ${verb} tests (${hit}). Work strictly from the interface contract.`
+  }
+
+  // The test writer may write only test paths, whatever the extension.
+  if (WRITE_TOOLS.has(call.tool)) {
+    const outside = candidates.find(path => path && !isTestPath(path))
+    return outside && `cleanroom: ${agentType} may only write tests (${outside}).`
+  }
+  if (isShell && GIT_UNCOMMITTED_READ.test(command)) {
+    return `cleanroom: ${agentType} cannot inspect working tree diffs (exposes implementation). Use \`git show HEAD:<path>\` or the contract.`
+  }
+  // Only files are blocked for reads: directory-wide Grep/Glob stay open to locate tests.
+  const hit = candidates.find(isProductionSource)
+  return hit && `cleanroom: ${agentType} cannot ${verb} working tree production code (${hit}). Use \`git show HEAD:<path>\` or the contract.`
+}

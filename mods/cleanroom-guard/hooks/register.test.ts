@@ -1,0 +1,42 @@
+import type { On } from 'claude-code'
+import { expect, test } from 'claude-code/testing'
+
+function fakeEngine(on: On, toasts: string[] = [], clock = { now: 1_000_000 }) {
+  on('ui.toast' as never, async (_$: unknown, e: { text: string }) => (toasts.push(e.text), { value: {} }) as never)
+  on('clock.now' as never, async () => ({ value: clock.now }) as never)
+  on('agent.list' as never, async () => ({
+    value: [
+      { id: 'impl1', type: 'code-implementer-jr' },
+      { id: 'tw1', type: 'test-writer-jr' },
+      { id: 'builder1', type: 'ami-cleanroom-builder' },
+      { id: 'tester1', type: 'ami-cleanroom-tester' },
+    ],
+  }) as never)
+  on('tool.call', async () => ({ result: 'ok' }) as never)
+}
+
+test('denies by the calling subagent type, never on the main loop', async ($, on) => {
+  fakeEngine(on)
+  const read = (file_path: string, agentId?: string) => $.tool.call({ tool: 'Read', file_path, agentId } as never)
+  expect((await read('tests/test_x.py', 'impl1')).deny).toBeDefined()
+  expect((await read('tests/test_x.py', 'builder1')).deny).toBeDefined()
+  expect((await read('src/x.py', 'tw1')).deny).toBeDefined()
+  expect((await read('src/x.py', 'tester1')).deny).toBeDefined()
+  expect((await read('tests/test_x.py')).deny).toBeUndefined()
+})
+
+test('a block toasts the rule once per window; a later block after the gap toasts again', async ($, on) => {
+  const toasts: string[] = []
+  const clock = { now: 5_000_000 }
+  fakeEngine(on, toasts, clock)
+  const read = () => $.tool.call({ tool: 'Read', file_path: 'tests/test_x.py', agentId: 'impl1' } as never)
+  expect((await read()).deny).toBeDefined()
+  expect((await read()).deny).toBeDefined()
+  expect(toasts.length).toBe(1)
+  expect(toasts[0]).toContain('cleanroom')
+  clock.now += 21_000
+  await read()
+  expect(toasts.length).toBe(2)
+  await $.tool.call({ tool: 'Read', file_path: 'src/x.py', agentId: 'impl1' } as never)
+  expect(toasts.length).toBe(2)
+})

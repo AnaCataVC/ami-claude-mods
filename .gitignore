@@ -1,0 +1,27 @@
+# Node and TypeScript build outputs
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Claude Code engine generated files (created automatically on load)
+.claude-plugin/types/claude-code/
+.claude-plugin/types/claude-code-tools/
+.claude-plugin/types/claude-code-mcp/
+**/.claude-plugin/types/claude-code/
+**/.claude-plugin/types/claude-code-tools/
+**/.claude-plugin/types/claude-code-mcp/
+
+# OS and Editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Logs and scratch
+*.log
+logs/
+scratch/
+releases/

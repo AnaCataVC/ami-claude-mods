@@ -1,0 +1,6 @@
+{
+  "name": "cleanroom-guard",
+  "version": "1.0.0",
+  "description": "Enforces Double-Blind Cleanroom isolation for TDD subagents: builders cannot read or edit tests, and test-writers cannot inspect uncommitted production code or write outside test suites",
+  "author": { "name": "Catalina Villalobos" }
+}

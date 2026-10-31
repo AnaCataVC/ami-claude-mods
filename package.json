@@ -1,0 +1,20 @@
+{
+  "name": "my-claude-mods",
+  "version": "1.0.0",
+  "description": "Essential production-grade mods and function hooks for Claude Code CLI",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test mods/**/hooks/*.test.ts"
+  },
+  "keywords": [
+    "claude-code",
+    "claude-code-plugin",
+    "claude-mods",
+    "developer-tools",
+    "ai-agent",
+    "terminal-ui"
+  ],
+  "author": "Catalina Villalobos",
+  "license": "MIT"
+}

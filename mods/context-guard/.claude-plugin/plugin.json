@@ -1,0 +1,7 @@
+{
+  "name": "context-guard",
+  "version": "1.0.0",
+  "description": "Environment and profile safety guard: monitors active GitHub CLI account and Kubernetes context, prevents accidental production cluster mutations, and blocks bare kubectl without explicit context",
+  "author": { "name": "Catalina Villalobos" },
+  "types": "./types/index.d.ts"
+}
