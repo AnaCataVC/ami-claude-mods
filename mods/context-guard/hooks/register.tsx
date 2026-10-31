@@ -20,7 +20,8 @@ async function readFirst($: Engine, paths: string[]): Promise<string | null> {
 
 async function loadConfig($: Engine): Promise<ContextGuardConfig> {
   const cwd = await $.session.cwd()
-  const home = await $.env.get('USERPROFILE') ?? await $.env.get('HOME')
+  const [userProfile, homeEnv] = await Promise.all([$.env.get('USERPROFILE'), $.env.get('HOME')])
+  const home = userProfile ?? homeEnv
   const candidates = [
     `${cwd}/.claude/context-guard.json`,
     `${cwd}/context-guard.json`,
@@ -36,7 +37,12 @@ async function loadConfig($: Engine): Promise<ContextGuardConfig> {
 }
 
 async function readSnapshot($: Engine): Promise<Snapshot> {
-  const [appData, home] = await Promise.all([$.env.get('APPDATA'), $.env.get('USERPROFILE') ?? $.env.get('HOME')])
+  const [appData, userProfile, homeEnv] = await Promise.all([
+    $.env.get('APPDATA'),
+    $.env.get('USERPROFILE'),
+    $.env.get('HOME'),
+  ])
+  const home = userProfile ?? homeEnv
   const [hosts, kubeConfig] = await Promise.all([
     readFirst($, [
       ...(appData ? [`${appData}/GitHub CLI/hosts.yml`] : []),

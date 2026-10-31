@@ -31,7 +31,7 @@ export function findMatchingProfile(cwd: string, profiles: Profile[] = []): Prof
 }
 
 export function isProdContext(context: string): boolean {
-  return /(^|[^a-z])prod(uction)?([^a-z]|$)/i.test(context)
+  return /(^|[^a-z])(prod(uction)?|live)([^a-z]|$)/i.test(context)
 }
 
 function unquote(value: string): string {

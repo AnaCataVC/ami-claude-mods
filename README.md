@@ -11,7 +11,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.4+-3178C6?style=flat&logo=typescript&logoColor=white)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-2.1.314+-D97706?style=flat&logo=anthropic&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-4B5563?style=flat)
-![Tests](https://img.shields.io/badge/Tests-100%25%20passing-brightgreen?style=flat)
+![Tests](https://img.shields.io/badge/Tests-passing-brightgreen?style=flat)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)
 
 ---
@@ -95,15 +95,21 @@ flowchart TD
 
 ### Prerequisites
 
-- Claude Code CLI installed (`claude --version` >= 2.1.300)
+- Claude Code CLI installed (`claude --version` >= 2.1.314)
 - Node.js 20+ (for local workspace tools)
 - Git 2.40+
 
 ### Installation
 
-You can load mods directly using the `CLAUDE_CODE_PLUGIN_DIRS` environment variable or by copying specific plugins into your Claude configuration folder (`~/.claude/mods`).
+You can load mods directly using the `--plugin-dir` flag, through the `CLAUDE_CODE_PLUGIN_DIRS` environment variable, or by copying specific plugins into your Claude configuration folder (`~/.claude/mods`).
 
-#### Method A: Load via Environment Variable (Recommended for Development)
+#### Method A: Direct Command-Line Flag (Fastest)
+
+```bash
+claude --plugin-dir mods/hooks-viewer --plugin-dir mods/undelegated-reads
+```
+
+#### Method B: Load via Environment Variable
 
 In PowerShell:
 ```powershell
@@ -117,7 +123,7 @@ export CLAUDE_CODE_PLUGIN_DIRS="/path/to/my-claude-mods/mods/hooks-viewer:/path/
 claude
 ```
 
-#### Method B: Copy to Local Plugin Directory
+#### Method C: Copy to Local Plugin Directory
 
 ```powershell
 Copy-Item -Recurse "mods/hooks-viewer" "$HOME/.claude/mods/"

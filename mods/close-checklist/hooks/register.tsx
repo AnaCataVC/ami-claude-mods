@@ -40,10 +40,10 @@ const runner =
   }
 
 async function countScratchpad($: Engine, cwd: string): Promise<number | null> {
-  const temp = (await $.env.get('TEMP')) as string | undefined
-  if (temp === undefined) return null
+  const [temp, tmpDir] = await Promise.all([$.env.get('TEMP'), $.env.get('TMPDIR')])
+  const tempDir = (temp ?? tmpDir ?? '/tmp') as string
   try {
-    const entries = await $.fs.list(scratchpadDir(temp, cwd, await $.session.id()))
+    const entries = await $.fs.list(scratchpadDir(tempDir, cwd, await $.session.id()))
     return entries.length
   } catch {
     return null
@@ -72,10 +72,16 @@ async function refresh($: Engine): Promise<void> {
 
 async function ignoredRoots($: Engine): Promise<string[]> {
   const roots: string[] = []
-  const temp = (await $.env.get('TEMP')) as string | undefined
-  const home = (await $.env.get('USERPROFILE')) as string | undefined
-  if (temp !== undefined) roots.push(temp)
-  if (home !== undefined) roots.push(`${home}/.claude`)
+  const [temp, tmpDir, userProfile, home] = await Promise.all([
+    $.env.get('TEMP'),
+    $.env.get('TMPDIR'),
+    $.env.get('USERPROFILE'),
+    $.env.get('HOME'),
+  ])
+  const tempDir = (temp ?? tmpDir ?? '/tmp') as string
+  roots.push(tempDir)
+  const homeDir = (userProfile ?? home) as string | undefined
+  if (homeDir !== undefined) roots.push(`${homeDir}/.claude`)
   return roots
 }
 

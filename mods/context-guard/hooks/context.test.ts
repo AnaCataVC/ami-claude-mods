@@ -30,6 +30,7 @@ test('detects production cluster contexts case-insensitively', () => {
   expect(isProdContext('gke_x_nonprod-cluster')).toBe(false)
   expect(isProdContext('gke_x_product-cluster')).toBe(false)
   expect(isProdContext('gke_x_us_production')).toBe(true)
+  expect(isProdContext('k8s-live-cluster')).toBe(true)
 })
 
 test('gh account parses active user at host block', () => {

@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test mods/**/hooks/*.test.ts"
+    "test": "node scripts/test-all.js"
   },
   "keywords": [
     "claude-code",

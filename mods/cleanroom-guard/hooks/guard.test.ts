@@ -45,6 +45,8 @@ const cases: Case[] = [
   [TEST_WRITER, 'Bash', { command: 'python -m pytest tests/test_api.py' }, false],
   ['Explore', 'Edit', { file_path: 'tests/test_api.py' }, false],
   ['Explore', 'Read', { file_path: 'tests/test_api.py' }, false],
+  ['page-builder', 'Read', { file_path: 'tests/test_api.py' }, false],
+  ['qa-reviewer', 'Read', { file_path: 'src/app/api.py' }, false],
   [undefined, 'Read', { file_path: 'tests/test_api.py' }, false],
 ]
 

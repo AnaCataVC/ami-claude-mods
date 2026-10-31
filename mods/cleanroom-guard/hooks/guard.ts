@@ -6,22 +6,34 @@ export const TEST_WRITER = 'test-writer-jr'
 export const AMI_BUILDER = 'ami-cleanroom-builder'
 export const AMI_TESTER = 'ami-cleanroom-tester'
 
+const IMPLEMENTER_ROLES = new Set([
+  'code-implementer-jr',
+  'ami-cleanroom-builder',
+  'cleanroom-builder',
+  'code-implementer',
+])
+
+const TEST_WRITER_ROLES = new Set([
+  'test-writer-jr',
+  'ami-cleanroom-tester',
+  'cleanroom-tester',
+  'test-writer',
+])
+
+function stripNamespace(agentType: string): string {
+  return agentType.includes('/') ? agentType.split('/').pop()! : agentType
+}
+
 export function isImplementerRole(agentType: string | undefined): boolean {
   if (!agentType) return false
-  return (
-    agentType === IMPLEMENTER ||
-    agentType === AMI_BUILDER ||
-    /(^|[-_])(implementer|builder)([-_]|$)/i.test(agentType)
-  )
+  const bare = stripNamespace(agentType).toLowerCase()
+  return IMPLEMENTER_ROLES.has(bare)
 }
 
 export function isTestWriterRole(agentType: string | undefined): boolean {
   if (!agentType) return false
-  return (
-    agentType === TEST_WRITER ||
-    agentType === AMI_TESTER ||
-    /(^|[-_])(test-writer|tester|qa)([-_]|$)/i.test(agentType)
-  )
+  const bare = stripNamespace(agentType).toLowerCase()
+  return TEST_WRITER_ROLES.has(bare)
 }
 
 // Paths normalized to forward slashes before matching.
