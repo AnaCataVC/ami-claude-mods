@@ -96,7 +96,7 @@ flowchart TD
 ### Prerrequisitos
 
 - Claude Code CLI instalado (`claude --version` >= 2.1.314)
-- Node.js 20+ (para utilidades locales de desarrollo)
+- Node.js 22+ (requerido por la CLI de Claude Code)
 - Git 2.40+
 
 ### Instalación

@@ -50,7 +50,7 @@ flowchart TD
 - **Matriz Multiplataforma:** Ejecución paralela en `ubuntu-latest` y `windows-latest`.
 - **Etapas del Pipeline:**
   1. Descarga el código fuente mediante `actions/checkout@v4`.
-  2. Inicializa Node.js 20 mediante `actions/setup-node@v4`.
+  2. Inicializa Node.js 22 mediante `actions/setup-node@v4`.
   3. Instala globalmente la CLI de Claude Code (`npm install -g @anthropic-ai/claude-code`).
   4. Valida los manifiestos de todos los plugins (`npm run validate`).
   5. Ejecuta las suites de pruebas automatizadas (`npm test`).

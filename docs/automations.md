@@ -50,7 +50,7 @@ flowchart TD
 - **Platform Matrix:** Multi-OS testing across `ubuntu-latest` and `windows-latest`.
 - **Execution Pipeline:**
   1. Checks out repository source via `actions/checkout@v4`.
-  2. Sets up Node.js 20 environment via `actions/setup-node@v4`.
+  2. Sets up Node.js 22 environment via `actions/setup-node@v4`.
   3. Installs Claude Code CLI globally (`npm install -g @anthropic-ai/claude-code`).
   4. Runs manifest validation across all mods (`npm run validate`).
   5. Executes automated test suites across all mods (`npm test`).

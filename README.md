@@ -96,7 +96,7 @@ flowchart TD
 ### Prerequisites
 
 - Claude Code CLI installed (`claude --version` >= 2.1.314)
-- Node.js 20+ (for local workspace tools)
+- Node.js 22+ (mandated by Claude Code CLI)
 - Git 2.40+
 
 ### Installation
