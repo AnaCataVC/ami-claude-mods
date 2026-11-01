@@ -1,0 +1,18 @@
+#!/bin/sh
+# Git pre-push hook to enforce quality gates before pushing to remote
+echo "==> Running ami-claude-mods pre-push quality gate..."
+
+npm run validate
+if [ $? -ne 0 ]; then
+  echo "❌ Pre-push gate failed: npm run validate reported errors."
+  exit 1
+fi
+
+npm test
+if [ $? -ne 0 ]; then
+  echo "❌ Pre-push gate failed: npm test reported test failures."
+  exit 1
+fi
+
+echo "✅ Pre-push quality gate passed successfully!"
+exit 0
