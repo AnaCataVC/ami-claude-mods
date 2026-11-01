@@ -17,9 +17,9 @@ Directives and invariants for developing, testing, and packaging plugins for Cla
 ---
 
 ## 2. Manifest & Hook Registration Schemas
-- **`hooks/hooks.json` Structure:** Always use the `modules` array schema:
+- **`hooks/hooks.json` Structure:** Always include `{ "hooks": {}, "modules": ["./register.tsx"] }` to ensure compatibility across Claude Code versions (including older CI validator releases that expect a `"hooks"` object):
   ```json
-  { "modules": ["./register.tsx"] }
+  { "hooks": {}, "modules": ["./register.tsx"] }
   ```
 - **Declarative State Registration:** Any atomic state key defined via `atom({ plugin: '<mod-name>', key: '<key>' })` MUST be formally typed in `types/index.d.ts` extending `interface PluginState`:
   ```typescript

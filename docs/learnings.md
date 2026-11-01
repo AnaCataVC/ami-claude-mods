@@ -58,7 +58,7 @@ Reactive atoms (`atom({ plugin, key })`) provide memory persistence across turns
 ## 5. Plugin Distribution & Marketplace Packaging
 
 - **Icons:** The developer portal and validator enforce square PNG icons (512x512 to 2048x2048 px, < 2 MB) located at `.claude-plugin/icon.png` or specified via `icon` in `plugin.json`.
-- **Manifest:** `hooks/hooks.json` strictly expects `{ "modules": ["./register.tsx"] }`.
+- **Manifest:** `hooks/hooks.json` should specify `{ "hooks": {}, "modules": ["./register.tsx"] }` to maintain cross-version compatibility across Claude Code releases (preventing validation rejections in environments expecting a `"hooks"` object).
 - **Command-line flags:** In addition to `CLAUDE_CODE_PLUGIN_DIRS`, Claude Code natively supports testing and loading mods via `claude --plugin-dir <dir>`.
 
 ---

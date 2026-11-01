@@ -58,7 +58,7 @@ Los átomos reactivos (`atom({ plugin, key })`) ofrecen persistencia de memoria 
 ## 5. Distribución y Empaquetado para el Catálogo de Plugins
 
 - **Iconos:** El validador y el portal de desarrolladores exigen iconos PNG cuadrados (512x512 a 2048x2048 px, < 2 MB) ubicados en `.claude-plugin/icon.png` o referenciados mediante `icon` en `plugin.json`.
-- **Manifiesto de hooks:** `hooks/hooks.json` requiere estrictamente la estructura `{ "modules": ["./register.tsx"] }`.
+- **Manifiesto de hooks:** `hooks/hooks.json` debe especificar `{ "hooks": {}, "modules": ["./register.tsx"] }` para preservar la compatibilidad entre distintas versiones de Claude Code (evitando rechazos en entornos de CI que requieran el objeto `"hooks"`).
 - **Parámetros CLI:** Además de `CLAUDE_CODE_PLUGIN_DIRS`, Claude Code admite nativamente cargar y probar mods usando el parámetro directo `claude --plugin-dir <dir>`.
 
 ---
