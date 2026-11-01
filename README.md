@@ -99,39 +99,59 @@ flowchart TD
 - Node.js 22+ (mandated by Claude Code CLI)
 - Git 2.40+
 
-### Installation
+### Installation & Setup
 
-You can load mods directly using the `--plugin-dir` flag, through the `CLAUDE_CODE_PLUGIN_DIRS` environment variable, or by copying specific plugins into your Claude configuration folder (`~/.claude/mods`).
+You can load mods for a single session, persist them across all terminal sessions, or install pre-packaged bundles directly from GitHub Releases.
 
-#### Method A: Direct Command-Line Flag (Fastest)
+#### Method A: Direct Command-Line Flag (Fastest for Testing)
+
+Load one or more mods directly when starting Claude Code:
 
 ```bash
 claude --plugin-dir mods/hooks-viewer --plugin-dir mods/undelegated-reads
 ```
 
-#### Method B: Load via Environment Variable
+#### Method B: Persistent Setup via Settings or Shell Profile (Recommended)
 
-In PowerShell:
-```powershell
-$env:CLAUDE_CODE_PLUGIN_DIRS = "C:/path/to/ami-claude-mods/mods/hooks-viewer;C:/path/to/ami-claude-mods/mods/undelegated-reads"
-claude
-```
+1. **Synchronize mods to your local Claude directory:**
+   ```bash
+   npm run install-mods
+   ```
+   This copies all six mods into `~/.claude/mods/`.
 
-In Bash:
-```bash
-export CLAUDE_CODE_PLUGIN_DIRS="/path/to/ami-claude-mods/mods/hooks-viewer:/path/to/ami-claude-mods/mods/undelegated-reads"
-claude
-```
+2. **Configure persistence:**
+   - **Option 1: In `~/.claude/settings.json` (Cross-shell):**
+     Add the `CLAUDE_CODE_PLUGIN_DIRS` key to your global settings file:
+     ```json
+     {
+       "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/child-sessions:~/.claude/mods/cleanroom-guard:~/.claude/mods/close-checklist:~/.claude/mods/context-guard:~/.claude/mods/hooks-viewer:~/.claude/mods/undelegated-reads"
+     }
+     ```
+     *(On Windows, use semicolons `;` as the path delimiter, e.g. `C:/Users/<username>/.claude/mods/...`)*.
 
-#### Method C: Automated Sync to Local Plugin Directory
+   - **Option 2: In your shell profile (`~/.bashrc`, `~/.zshrc`, or `$PROFILE`):**
+     Print the exact export statement tailored to your OS with:
+     ```bash
+     npm run install-mods -- --print-env
+     ```
+     Paste the generated line into your shell profile to load mods in every session.
 
-```bash
-# Synchronize all mods into ~/.claude/mods/
-npm run install-mods
+#### Method C: Direct Download from GitHub Releases (No Node.js Required)
 
-# Or print the exact environment variable declaration for your shell:
-npm run install-mods -- --print-env
-```
+1. Download the pre-packaged zip bundle from [GitHub Releases](https://github.com/AnaCataVC/ami-claude-mods/releases) (e.g. `ami-claude-mods-all-v1.0.0.zip` or individual mod archives).
+2. Extract the archive into your preferred directory (e.g. `~/.claude/mods/`).
+3. Launch Claude Code pointing to the extracted folders:
+   ```bash
+   claude --plugin-dir ~/.claude/mods/hooks-viewer
+   ```
+
+### Verifying Loaded Mods
+
+Once Claude Code starts, confirm that your mods are active:
+
+1. Run `/hooks-panel` to open the interactive **`hooks-viewer`** side pane listing all active plugins and hooks.
+2. Run `/checklist` to trigger **`close-checklist`** and inspect your pending Git changes, Docker containers, and background tasks.
+3. Observe the bottom status bar: **`undelegated-reads`** and **`context-guard`** display real-time read gauges and active environment profiles.
 
 ### Validating Mods
 

@@ -99,39 +99,59 @@ flowchart TD
 - Node.js 22+ (requerido por la CLI de Claude Code)
 - Git 2.40+
 
-### Instalación
+### Instalación y Configuración
 
-Los mods pueden cargarse directamente utilizando el parámetro `--plugin-dir`, mediante la variable de entorno `CLAUDE_CODE_PLUGIN_DIRS` o copiando los plugins requeridos en tu directorio personal de Claude (`~/.claude/mods`).
+Puedes cargar los mods para una sesión puntual, configurarlos de forma permanente en todas tus sesiones de terminal, o instalar paquetes precompilados directamente desde GitHub Releases.
 
-#### Método A: Parámetro Directo por Línea de Comandos (Recomendado)
+#### Método A: Parámetro Directo por Línea de Comandos (Prueba Rápida)
+
+Carga uno o más mods directamente al iniciar Claude Code:
 
 ```bash
 claude --plugin-dir mods/hooks-viewer --plugin-dir mods/undelegated-reads
 ```
 
-#### Método B: Carga mediante Variable de Entorno
+#### Método B: Configuración Persistente en Settings o Perfil de Shell (Recomendado)
 
-En PowerShell:
-```powershell
-$env:CLAUDE_CODE_PLUGIN_DIRS = "C:/ruta/a/ami-claude-mods/mods/hooks-viewer;C:/ruta/a/ami-claude-mods/mods/undelegated-reads"
-claude
-```
+1. **Sincronizar los mods en tu directorio local de Claude:**
+   ```bash
+   npm run install-mods
+   ```
+   Esto copiará los seis mods a `~/.claude/mods/`.
 
-En Bash:
-```bash
-export CLAUDE_CODE_PLUGIN_DIRS="/ruta/a/ami-claude-mods/mods/hooks-viewer:/ruta/a/ami-claude-mods/mods/undelegated-reads"
-claude
-```
+2. **Configurar la persistencia:**
+   - **Opción 1: En `~/.claude/settings.json` (Multiplataforma):**
+     Añade la clave `CLAUDE_CODE_PLUGIN_DIRS` a tu archivo global de configuración:
+     ```json
+     {
+       "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/child-sessions:~/.claude/mods/cleanroom-guard:~/.claude/mods/close-checklist:~/.claude/mods/context-guard:~/.claude/mods/hooks-viewer:~/.claude/mods/undelegated-reads"
+     }
+     ```
+     *(En Windows, utiliza punto y coma `;` como separador de rutas, ej. `C:/Users/<usuario>/.claude/mods/...`)*.
 
-#### Método C: Sincronización Automatizada a la Carpeta Local
+   - **Opción 2: En tu perfil de shell (`~/.bashrc`, `~/.zshrc` o `$PROFILE` en PowerShell):**
+     Imprime la instrucción exacta para tu sistema operativo ejecutando:
+     ```bash
+     npm run install-mods -- --print-env
+     ```
+     Pega la línea generada en tu perfil de shell para que los mods se carguen automáticamente en cada terminal.
 
-```bash
-# Sincronizar todos los mods en ~/.claude/mods/
-npm run install-mods
+#### Método C: Descarga Directa desde GitHub Releases (Sin Requerir Node.js)
 
-# O imprimir la declaración exacta de variables de entorno para tu terminal:
-npm run install-mods -- --print-env
-```
+1. Descarga el archivo comprimido desde [GitHub Releases](https://github.com/AnaCataVC/ami-claude-mods/releases) (ej. `ami-claude-mods-all-v1.0.0.zip` o archivos individuales por mod).
+2. Descomprime el contenido en la carpeta que prefieras (ej. `~/.claude/mods/`).
+3. Inicia Claude Code apuntando a las carpetas extraídas:
+   ```bash
+   claude --plugin-dir ~/.claude/mods/hooks-viewer
+   ```
+
+### Verificación de Mods Cargados
+
+Una vez iniciado Claude Code, puedes comprobar que los mods están operando:
+
+1. Ejecuta `/hooks-panel` para abrir el panel lateral interactivo de **`hooks-viewer`** con la lista de plugins y hooks activos.
+2. Ejecuta `/checklist` para activar **`close-checklist`** e inspeccionar cambios pendientes de Git, contenedores Docker y tareas en segundo plano.
+3. Observa la barra de estado inferior: **`undelegated-reads`** y **`context-guard`** mostrarán en tiempo real el medidor de lecturas y el perfil de entorno activo.
 
 ### Validación de Mods
 

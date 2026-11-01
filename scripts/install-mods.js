@@ -20,6 +20,8 @@ if (printEnv) {
   } else {
     console.log(`Bash/Zsh:\nexport CLAUDE_CODE_PLUGIN_DIRS="${fullPaths}"\n`)
   }
+  const escapedPaths = fullPaths.replace(/\\/g, '\\\\')
+  console.log(`JSON (for ~/.claude/settings.json):\n{\n  "CLAUDE_CODE_PLUGIN_DIRS": "${escapedPaths}"\n}\n`)
   process.exit(0)
 }
 
