@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="icon.png" alt="my-claude-mods Logo" width="120" />
+  <img src="icon.png" alt="ami-claude-mods Logo" width="120" />
 </p>
 
-# My Claude Mods
+# AMI Claude Mods
 
 > **Production-grade mods, reactive UI panels, and function hooks for Claude Code CLI.**
 
@@ -18,7 +18,7 @@
 
 ## Project Overview
 
-`my-claude-mods` is a curated suite of modular extensions (mods) and function hooks built for the **Claude Code CLI** engine. As autonomous AI coding agents tackle increasingly complex workflows, human developers face operational hurdles: context window bloat from mechanical searches, orphaned background containers or dangling processes, accidental cross-account Git commits, unintended mutations on production Kubernetes clusters, and lack of visibility into loaded hooks.
+`ami-claude-mods` is a curated suite of modular extensions (mods) and function hooks built for the **Claude Code CLI** engine, designed to integrate seamlessly with the **Amiga IA** agent ecosystem (`amiga-ia`). As autonomous AI coding agents tackle increasingly complex workflows, human developers face operational hurdles: context window bloat from mechanical searches, orphaned background containers or dangling processes, accidental cross-account Git commits, unintended mutations on production Kubernetes clusters, and lack of visibility into loaded hooks.
 
 This repository provides six decoupled, privacy-safe, and self-contained plugins designed to enhance reliability, visibility, and safety without modifying Claude Code core binaries.
 
@@ -50,7 +50,7 @@ flowchart TD
         UI["Terminal Render Surfaces"]
     end
 
-    subgraph Plugins["my-claude-mods Suite"]
+    subgraph Plugins["ami-claude-mods Suite"]
         HV["hooks-viewer"]
         UR["undelegated-reads"]
         CC["close-checklist"]
@@ -113,13 +113,13 @@ claude --plugin-dir mods/hooks-viewer --plugin-dir mods/undelegated-reads
 
 In PowerShell:
 ```powershell
-$env:CLAUDE_CODE_PLUGIN_DIRS = "C:/path/to/my-claude-mods/mods/hooks-viewer;C:/path/to/my-claude-mods/mods/undelegated-reads"
+$env:CLAUDE_CODE_PLUGIN_DIRS = "C:/path/to/ami-claude-mods/mods/hooks-viewer;C:/path/to/ami-claude-mods/mods/undelegated-reads"
 claude
 ```
 
 In Bash:
 ```bash
-export CLAUDE_CODE_PLUGIN_DIRS="/path/to/my-claude-mods/mods/hooks-viewer:/path/to/my-claude-mods/mods/undelegated-reads"
+export CLAUDE_CODE_PLUGIN_DIRS="/path/to/ami-claude-mods/mods/hooks-viewer:/path/to/ami-claude-mods/mods/undelegated-reads"
 claude
 ```
 

@@ -1,5 +1,5 @@
 {
-  "name": "my-claude-mods",
+  "name": "ami-claude-mods",
   "version": "1.0.0",
   "description": "Essential production-grade mods and function hooks for Claude Code CLI",
   "private": true,

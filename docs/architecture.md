@@ -1,6 +1,6 @@
 # Architecture & Design Specifications
 
-Comprehensive technical reference for `my-claude-mods`, explaining the integration model, lifecycle hooks, state persistence, and testing paradigms of Claude Code plugins.
+Comprehensive technical reference for `ami-claude-mods`, explaining the integration model, lifecycle hooks, state persistence, and testing paradigms of Claude Code plugins.
 
 ---
 

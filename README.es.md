@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="icon.png" alt="Logo de my-claude-mods" width="120" />
+  <img src="icon.png" alt="Logo de ami-claude-mods" width="120" />
 </p>
 
-# My Claude Mods
+# AMI Claude Mods
 
 > **Mods de grado de producción, paneles UI reactivos y function hooks para la CLI de Claude Code.**
 
@@ -18,7 +18,7 @@
 
 ## Descripción del Proyecto
 
-`my-claude-mods` es una suite curada de extensiones modulares (mods) y function hooks diseñados para el motor de **Claude Code CLI**. A medida que los agentes autónomos de programación abordan flujos de trabajo de mayor complejidad, los desarrolladores enfrentan desafíos operativos: saturación de la ventana de contexto por búsquedas mecánicas, contenedores Docker huérfanos o procesos en segundo plano abandonados, commits accidentales con cuentas incorrectas de Git, mutaciones involuntarias en clústeres de Kubernetes de producción y falta de visibilidad sobre los hooks cargados.
+`ami-claude-mods` es una suite curada de extensiones modulares (mods) y function hooks diseñados para el motor de **Claude Code CLI**, integrada de forma sinérgica con el ecosistema de agentes **Amiga IA** (`amiga-ia`). A medida que los agentes autónomos de programación abordan flujos de trabajo de mayor complejidad, los desarrolladores enfrentan desafíos operativos: saturación de la ventana de contexto por búsquedas mecánicas, contenedores Docker huérfanos o procesos en segundo plano abandonados, commits accidentales con cuentas incorrectas de Git, mutaciones involuntarias en clústeres de Kubernetes de producción y falta de visibilidad sobre los hooks cargados.
 
 Este repositorio proporciona seis plugins desacoplados, seguros para la privacidad y autocontenidos, orientados a maximizar la confiabilidad, visibilidad y seguridad sin necesidad de modificar los binarios base de Claude Code.
 
@@ -50,7 +50,7 @@ flowchart TD
         UI["Superficies de Renderizado Terminal"]
     end
 
-    subgraph Plugins["Suite my-claude-mods"]
+    subgraph Plugins["Suite ami-claude-mods"]
         HV["hooks-viewer"]
         UR["undelegated-reads"]
         CC["close-checklist"]
@@ -113,13 +113,13 @@ claude --plugin-dir mods/hooks-viewer --plugin-dir mods/undelegated-reads
 
 En PowerShell:
 ```powershell
-$env:CLAUDE_CODE_PLUGIN_DIRS = "C:/ruta/a/my-claude-mods/mods/hooks-viewer;C:/ruta/a/my-claude-mods/mods/undelegated-reads"
+$env:CLAUDE_CODE_PLUGIN_DIRS = "C:/ruta/a/ami-claude-mods/mods/hooks-viewer;C:/ruta/a/ami-claude-mods/mods/undelegated-reads"
 claude
 ```
 
 En Bash:
 ```bash
-export CLAUDE_CODE_PLUGIN_DIRS="/ruta/a/my-claude-mods/mods/hooks-viewer:/ruta/a/my-claude-mods/mods/undelegated-reads"
+export CLAUDE_CODE_PLUGIN_DIRS="/ruta/a/ami-claude-mods/mods/hooks-viewer:/ruta/a/ami-claude-mods/mods/undelegated-reads"
 claude
 ```
 

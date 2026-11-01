@@ -1,6 +1,6 @@
 # Arquitectura y Especificaciones de Diseño
 
-Referencia técnica integral de `my-claude-mods`, detallando el modelo de integración, ciclo de vida de los hooks, persistencia reactiva de estado y paradigmas de prueba en Claude Code.
+Referencia técnica integral de `ami-claude-mods`, detallando el modelo de integración, ciclo de vida de los hooks, persistencia reactiva de estado y paradigmas de prueba en Claude Code.
 
 ---
 
