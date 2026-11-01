@@ -123,44 +123,51 @@ export CLAUDE_CODE_PLUGIN_DIRS="/path/to/ami-claude-mods/mods/hooks-viewer:/path
 claude
 ```
 
-#### Method C: Copy to Local Plugin Directory
-
-```powershell
-Copy-Item -Recurse "mods/hooks-viewer" "$HOME/.claude/mods/"
-```
-
-### Validating a Mod
-
-Before starting a session, validate that any modified plugin satisfies the manifest and hooks contract:
+#### Method C: Automated Sync to Local Plugin Directory
 
 ```bash
+# Synchronize all mods into ~/.claude/mods/
+npm run install-mods
+
+# Or print the exact environment variable declaration for your shell:
+npm run install-mods -- --print-env
+```
+
+### Validating Mods
+
+Validate plugin manifests (`plugin.json`), hooks contracts (`hooks.json`), and atomic state schemas across the suite:
+
+```bash
+# Validate all mods across the repository
+npm run validate
+
+# Or validate an individual mod
 claude plugin validate mods/hooks-viewer
-claude plugin validate mods/close-checklist
 ```
 
 ---
 
-## Automated Testing
+## Automated Testing & Quality Gates
 
 All mods include automated test suites powered by the `'claude-code/testing'` headless mock engine:
 
 ```bash
+# Run all mod test suites in sequence
+npm test
+
 # Run tests for a specific mod
 claude plugin test mods/hooks-viewer
-claude plugin test mods/undelegated-reads
-claude plugin test mods/close-checklist
-claude plugin test mods/child-sessions
-claude plugin test mods/cleanroom-guard
-claude plugin test mods/context-guard
 ```
 
-To run all mod test suites in sequence:
-```powershell
-Get-ChildItem -Directory mods | ForEach-Object { claude plugin test $_.FullName }
+Before pushing changes, you can activate local Git pre-push hooks:
+```bash
+npm run prepare
 ```
 
 > [!NOTE]
 > Verification passes when all automated test suites complete with 100% success and zero regressions.
+
+For a full breakdown of the CI/CD pipelines, release packaging, and Git hooks, see [docs/automations.md](docs/automations.md).
 
 ---
 

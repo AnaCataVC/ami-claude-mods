@@ -58,3 +58,11 @@ Directives and invariants for developing, testing, and packaging plugins for Cla
 ## 5. Diagnostic Privacy & Log Hygiene
 - Never output raw user configurations (`$HOME\.claude\settings.json`) or environment files into shell outputs or commit logs.
 - Use targeted filters (`Select-String -Pattern ...`) scoped strictly to required metadata.
+
+---
+
+## 6. Pre-Push Validation & Packaging Quality Gates
+- **Static Schema Validation:** Always execute `npm run validate` prior to proposing commits or PRs to guarantee that all plugin manifests (`plugin.json`), hook bindings (`hooks.json`), and type contracts satisfy Claude Code runtime requirements.
+- **Packaging Integrity:** Run `npm run package` to verify that release distribution archives (`dist/<mod>.zip`) compile cleanly and exclude development caches, temporary files, and test mocks.
+- **Hook Setup:** Ensure repository hooks are configured locally via `npm run prepare` (`scripts/setup-hooks.js`).
+

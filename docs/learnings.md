@@ -1,5 +1,7 @@
 # Key Learnings & Architectural Invariants
 
+[English](learnings.md) | [Español](learnings.es.md)
+
 A record of technical discoveries, runtime constraints, and lessons learned while developing, testing, and hardening plugins for Claude Code CLI (Early Access 2.1+).
 
 ---
@@ -58,3 +60,11 @@ Reactive atoms (`atom({ plugin, key })`) provide memory persistence across turns
 - **Icons:** The developer portal and validator enforce square PNG icons (512x512 to 2048x2048 px, < 2 MB) located at `.claude-plugin/icon.png` or specified via `icon` in `plugin.json`.
 - **Manifest:** `hooks/hooks.json` strictly expects `{ "modules": ["./register.tsx"] }`.
 - **Command-line flags:** In addition to `CLAUDE_CODE_PLUGIN_DIRS`, Claude Code natively supports testing and loading mods via `claude --plugin-dir <dir>`.
+
+---
+
+## 6. Related Documentation
+
+- **Architecture & Design Specifications:** See [Architecture Specifications](architecture.md) for execution models and event interception matrices.
+- **Automations & CI/CD Pipelines:** See [Automations & Workflow Reference](automations.md) for validation scripts and GitHub Actions workflows.
+

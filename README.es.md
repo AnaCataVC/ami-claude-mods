@@ -123,44 +123,51 @@ export CLAUDE_CODE_PLUGIN_DIRS="/ruta/a/ami-claude-mods/mods/hooks-viewer:/ruta/
 claude
 ```
 
-#### Método C: Copia a la Carpeta Local de Plugins
-
-```powershell
-Copy-Item -Recurse "mods/hooks-viewer" "$HOME/.claude/mods/"
-```
-
-### Validación de un Mod
-
-Antes de iniciar una sesión, valida que el plugin cumpla con los esquemas del manifiesto y los contratos de hooks:
+#### Método C: Sincronización Automatizada a la Carpeta Local
 
 ```bash
+# Sincronizar todos los mods en ~/.claude/mods/
+npm run install-mods
+
+# O imprimir la declaración exacta de variables de entorno para tu terminal:
+npm run install-mods -- --print-env
+```
+
+### Validación de Mods
+
+Valida los esquemas de manifiesto (`plugin.json`), contratos de hooks (`hooks.json`) y definiciones de estado atómico de todos los plugins:
+
+```bash
+# Validar todos los mods del repositorio
+npm run validate
+
+# O validar un mod individual
 claude plugin validate mods/hooks-viewer
-claude plugin validate mods/close-checklist
 ```
 
 ---
 
-## Pruebas Automatizadas
+## Pruebas Automatizadas y Calidad
 
 Todos los mods incorporan suites de pruebas automatizadas ejecutadas contra el motor headless de pruebas de `'claude-code/testing'`:
 
 ```bash
+# Ejecutar todas las pruebas en secuencia
+npm test
+
 # Ejecutar pruebas para un mod específico
 claude plugin test mods/hooks-viewer
-claude plugin test mods/undelegated-reads
-claude plugin test mods/close-checklist
-claude plugin test mods/child-sessions
-claude plugin test mods/cleanroom-guard
-claude plugin test mods/context-guard
 ```
 
-Para ejecutar todas las suites en lote:
-```powershell
-Get-ChildItem -Directory mods | ForEach-Object { claude plugin test $_.FullName }
+Para activar los hooks locales de Git previo al push:
+```bash
+npm run prepare
 ```
 
 > [!NOTE]
 > La verificación se declara exitosa cuando el conjunto completo de pruebas automatizadas finaliza con un 100% de éxito y cero regresiones.
+
+Para consultar el desglose completo de pipelines CI/CD, publicación de releases y hooks de Git, revisa [docs/automations.es.md](docs/automations.es.md).
 
 ---
 

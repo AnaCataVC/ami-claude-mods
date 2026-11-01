@@ -1,5 +1,7 @@
 # Aprendizajes Clave e Invariantes Arquitectónicos
 
+[English](learnings.md) | [Español](learnings.es.md)
+
 Registro de descubrimientos técnicos, restricciones de runtime y lecciones aprendidas durante el desarrollo, prueba y empaquetado de plugins para la CLI de Claude Code (Early Access 2.1+).
 
 ---
@@ -58,3 +60,11 @@ Los átomos reactivos (`atom({ plugin, key })`) ofrecen persistencia de memoria 
 - **Iconos:** El validador y el portal de desarrolladores exigen iconos PNG cuadrados (512x512 a 2048x2048 px, < 2 MB) ubicados en `.claude-plugin/icon.png` o referenciados mediante `icon` en `plugin.json`.
 - **Manifiesto de hooks:** `hooks/hooks.json` requiere estrictamente la estructura `{ "modules": ["./register.tsx"] }`.
 - **Parámetros CLI:** Además de `CLAUDE_CODE_PLUGIN_DIRS`, Claude Code admite nativamente cargar y probar mods usando el parámetro directo `claude --plugin-dir <dir>`.
+
+---
+
+## 6. Documentación Relacionada
+
+- **Arquitectura y Especificaciones de Diseño:** Consulta [Arquitectura y Especificaciones](architecture.es.md) para detalles sobre el sandbox de ejecución y matrices de intercepción de eventos.
+- **Automatizaciones y Pipelines de CI/CD:** Consulta la [Referencia de Automatizaciones](automations.es.md) para detalles sobre scripts de validación y flujos de GitHub Actions.
+

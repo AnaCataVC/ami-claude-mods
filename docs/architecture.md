@@ -1,5 +1,7 @@
 # Architecture & Design Specifications
 
+[English](architecture.md) | [Español](architecture.es.md)
+
 Comprehensive technical reference for `ami-claude-mods`, explaining the integration model, lifecycle hooks, state persistence, and testing paradigms of Claude Code plugins.
 
 ---
@@ -77,3 +79,11 @@ In Test-Driven Development (TDD), information isolation between implementer and 
    - Role: `ami-cleanroom-tester` or `test-writer-jr`.
    - Blocked: Reading uncommitted working tree diffs (`git diff`) or production source files (`.py`, `.ts`, `.go`, etc.).
    - Allowed: Writing tests and reading base committed versions via `git show HEAD:<path>`.
+
+---
+
+## 5. Related Technical Specifications
+
+- **Automations & CI/CD Pipelines:** See [Automations & Workflow Reference](automations.md) for pre-push hooks, multi-OS matrix testing, and release packaging.
+- **Architectural Learnings & Invariants:** See [Key Learnings & Architectural Invariants](learnings.md) for critical constraints, engine bugs prevented, and runtime lessons.
+

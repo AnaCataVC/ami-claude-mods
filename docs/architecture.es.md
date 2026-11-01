@@ -1,5 +1,7 @@
 # Arquitectura y Especificaciones de Diseño
 
+[English](architecture.md) | [Español](architecture.es.md)
+
 Referencia técnica integral de `ami-claude-mods`, detallando el modelo de integración, ciclo de vida de los hooks, persistencia reactiva de estado y paradigmas de prueba en Claude Code.
 
 ---
@@ -77,3 +79,11 @@ En el desarrollo guiado por pruebas (TDD), el aislamiento de información entre 
    - Rol: `ami-cleanroom-tester` o `test-writer-jr`.
    - Bloqueado: Lectura de diffs del working tree sin commitear (`git diff`) o código de producción (`.py`, `.ts`, `.go`, etc.).
    - Permitido: Redacción de pruebas y lectura de versiones base commiteadas mediante `git show HEAD:<path>`.
+
+---
+
+## 5. Especificaciones Técnicas Relacionadas
+
+- **Automatizaciones y Pipelines de CI/CD:** Consulta la [Referencia de Automatizaciones y Flujos de Trabajo](automations.es.md) para detalles sobre hooks pre-push, pruebas en matriz multi-SO y empaquetado de releases.
+- **Invariantes y Aprendizajes Arquitectónicos:** Consulta [Aprendizajes Clave e Invariantes Arquitectónicos](learnings.es.md) para restricciones críticas, prevención de errores del motor y lecciones de runtime.
+
