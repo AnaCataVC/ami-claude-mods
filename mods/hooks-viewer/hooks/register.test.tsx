@@ -5,11 +5,12 @@ const PANE = {
   plugin: 'hooks-viewer',
   component: 'Pane',
   requestId: 'hooks-viewer',
-  props: { title: 'Hooks & Mods', isFocused: false, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
+  props: { title: 'Hooks y mods', isFocused: false, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
 } as const
 
 const MANIFEST = '{ "name": "demo-mod", "version": "0.3.0", "description": "x" }'
 
+// Stands in for the engine: state store, settings files, environment, filesystem and the pane.
 function fakeEngine(on: On) {
   const store = new Map<string, unknown>()
   const opened: string[] = []
@@ -48,7 +49,8 @@ test('session start opens the pane by itself and the pane lists hooks and mods o
 test('the command replies with the listing as text', async ($, on) => {
   fakeEngine(on)
   const reply = await $.command.run({ command: 'hooks-panel' } as never)
-  expect(reply.text).toContain('Hooks (5)')
+  // The fake answers every source with the same hooks: five sources, five rows.
+  expect(reply.text).toContain('Hooks de settings (5)')
   expect(reply.text).toContain('[*] stop.ps1')
   expect(reply.text).toContain('demo-mod v0.3.0')
 })
@@ -56,6 +58,6 @@ test('the command replies with the listing as text', async ($, on) => {
 test('an empty pane says so instead of drawing nothing', async ($, on) => {
   on('state.get', () => ({ value: { value: undefined, version: 0 } }) as never)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
-  expect((await ui.find({ type: 'Text', text: /No hooks/ }))?.text).toBeDefined()
+  expect((await ui.find({ type: 'Text', text: /No hay hooks/ }))?.text).toBeDefined()
   await ui.unmount()
 })

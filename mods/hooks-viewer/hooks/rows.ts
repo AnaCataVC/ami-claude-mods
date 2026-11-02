@@ -41,7 +41,7 @@ function unquote(token: string): string {
   return token.replace(/^["']|["']$/g, '')
 }
 
-// Shows the script name instead of the whole command line when available:
+// Shows the script name instead of the whole `pwsh -NoProfile -File "..." args` line:
 // the `-File` value wins, then the first token that looks like a script path.
 // Anything else (inline commands, URLs) is shown untouched.
 export function shortCommand(command: string): string {
@@ -62,10 +62,7 @@ export function limitRows(rows: HookRow[], maxRows: number): { shown: HookRow[];
 
 // CLAUDE_CODE_PLUGIN_DIRS holds the mod folders separated by `;`.
 export function modDirs(value: string | undefined): string[] {
-  return (value ?? '')
-    .split(';')
-    .map(dir => dir.trim())
-    .filter(Boolean)
+  return (value ?? '').split(';').map(dir => dir.trim()).filter(Boolean)
 }
 
 // A manifest that is not JSON or names no plugin is not a mod row.
@@ -85,7 +82,7 @@ export function parseMod(manifest: string): ModRow | undefined {
 
 // The same listing as the pane, as plain text for the command's reply, which shows on every surface.
 export function reportText(hooks: HookRow[], mods: ModRow[]): string {
-  const lines = [`Hooks (${hooks.length})`]
+  const lines = [`Hooks de settings (${hooks.length})`]
   for (const event of [...new Set(hooks.map(row => row.event))]) {
     lines.push(`  ${event}`)
     for (const row of hooks.filter(one => one.event === event)) {
@@ -93,7 +90,38 @@ export function reportText(hooks: HookRow[], mods: ModRow[]): string {
       lines.push(`    [${row.matcher}] ${shortCommand(row.command)}${timeout}  ${row.source}`)
     }
   }
-  lines.push('', `Mods (${mods.length})`)
+  lines.push('', `Mods cargados (${mods.length})`)
   for (const mod of mods) lines.push(`  ${mod.name} v${mod.version}${mod.description ? ` - ${mod.description}` : ''}`)
   return lines.join('\n')
+}
+
+// Lifecycle order: the sequence a session goes through, so the pane reads top to bottom like it runs.
+const EVENT_ORDER = ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SubagentStop', 'PreCompact', 'SessionEnd']
+// Events whose hooks can veto the action, worth spotting at a glance.
+const BLOCKING_EVENTS = new Set(['PreToolUse', 'UserPromptSubmit'])
+const MAX_CHIPS = 3
+
+export function sortEvents(events: string[]): string[] {
+  const rank = (event: string) => (EVENT_ORDER.includes(event) ? EVENT_ORDER.indexOf(event) : EVENT_ORDER.length)
+  return [...events].sort((a, b) => rank(a) - rank(b))
+}
+
+export function canBlock(event: string): boolean {
+  return BLOCKING_EVENTS.has(event)
+}
+
+// A matcher as short chips: `*` reads "todos", MCP regexes lose their boilerplate,
+// and anything beyond MAX_CHIPS collapses into a "+N" chip.
+export function matcherChips(matcher: string): string[] {
+  if (matcher === '*') return ['todos']
+  const readable = matcher.startsWith('mcp__') ? [matcher.replace(/^mcp__(\.\*)?_*/, 'mcp:').replace(/\(([^)]*)\)\?/g, '[$1]')] : matcher.split('|')
+  if (readable.length <= MAX_CHIPS) return readable
+  return [...readable.slice(0, MAX_CHIPS), `+${readable.length - MAX_CHIPS}`]
+}
+
+export function summaryText(hooks: HookRow[], mods: ModRow[]): string {
+  const bySource = new Map<string, number>()
+  for (const row of hooks) bySource.set(row.source, (bySource.get(row.source) ?? 0) + 1)
+  const sources = [...bySource].map(([source, count]) => `${count} ${source}`)
+  return [`${hooks.length} hooks`, ...sources, `${mods.length} mods`].join(' · ')
 }
