@@ -9,6 +9,6 @@ Working across multiple GitHub accounts (e.g. personal vs work) and Kubernetes c
 ## Features
 
 - **GitHub CLI Alignment:** Detects active user in `hosts.yml` and warns if operating in a project directory that expects a different account.
-- **Production Kubernetes Safeguard:** Identifies production cluster contexts (`prod`, `production`, `live`) and displays warning banners above the prompt.
+- **Production Kubernetes Safeguard:** Identifies production cluster contexts (`prod`, `production`, `live`) and flags them in the status line (`⚠ prod`). A GitHub account mismatch is flagged there too (`✗ no coincide`).
 - **Explicit Context Enforcement:** Blocks bare `kubectl` commands without `--context` to prevent accidental mutations when concurrent processes switch the global kube context.
 - **Configurable Profiles:** Define directory mappings via `context-guard.json`.
