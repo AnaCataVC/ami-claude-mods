@@ -4,12 +4,12 @@
 
 # AMI Claude Mods
 
-> **Production-grade mods, reactive UI panels, and function hooks for Claude Code CLI.**
+> **Production-grade mods, reactive UI panels, and function hooks for Claude Desktop and Claude Code CLI.**
 
 [English](README.md) | [Español](README.es.md)
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.4+-3178C6?style=flat&logo=typescript&logoColor=white)
-![Claude Code](https://img.shields.io/badge/Claude%20Code-2.1.314+-D97706?style=flat&logo=anthropic&logoColor=white)
+![Claude Desktop & CLI](https://img.shields.io/badge/Claude-Desktop%20%7C%20Code%20CLI%202.1+-D97706?style=flat&logo=anthropic&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-4B5563?style=flat)
 ![Tests](https://img.shields.io/badge/Tests-passing-brightgreen?style=flat)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat)
@@ -18,9 +18,11 @@
 
 ## Project Overview
 
-`ami-claude-mods` is a curated suite of modular extensions (mods) and function hooks built for the **Claude Code CLI** engine, designed to integrate seamlessly with the **Amiga IA** agent ecosystem (`amiga-ia`). As autonomous AI coding agents tackle increasingly complex workflows, human developers face operational hurdles: context window bloat from mechanical searches, orphaned background containers or dangling processes, accidental cross-account Git commits, unintended mutations on production Kubernetes clusters, and lack of visibility into loaded hooks.
+`ami-claude-mods` is a curated suite of modular extensions (mods) and function hooks built for the **Claude Desktop** application (integrated Code tab) and the **Claude Code CLI** engine, designed to integrate seamlessly with the **Amiga IA** agent ecosystem (`amiga-ia`). As autonomous AI coding agents tackle increasingly complex workflows, human developers face operational hurdles: context window bloat from mechanical searches, orphaned background containers or dangling processes, accidental cross-account Git commits, unintended mutations on production Kubernetes clusters, and lack of visibility into loaded hooks.
 
-This repository provides six decoupled, privacy-safe, and self-contained plugins designed to enhance reliability, visibility, and safety without modifying Claude Code core binaries.
+While widely used in terminal sessions via the CLI, `ami-claude-mods` is designed as a first-class companion for **Claude Desktop**—serving as a primary daily-driver environment where side panes (`Pane`), banners (`AbovePrompt`), status gauges, and toast alerts render as native desktop GUI controls.
+
+This repository provides six decoupled, privacy-safe, and self-contained plugins designed to enhance reliability, visibility, and safety without modifying Claude core binaries.
 
 ---
 
@@ -39,15 +41,15 @@ This repository provides six decoupled, privacy-safe, and self-contained plugins
 
 ## Architecture Overview
 
-All plugins adhere to Claude Code's Isolated ECMAScript Module (ESM) runtime. Rather than importing Node.js internal modules directly, mods communicate with the host environment exclusively through the `EngineInterface` (`$`).
+All plugins adhere to the isolated ECMAScript Module (ESM) runtime shared across both **Claude Desktop** and **Claude Code CLI**. Rather than importing Node.js internal modules directly, mods communicate with the host environment exclusively through the `EngineInterface` (`$`), allowing reactive state and UI to render seamlessly in both desktop GUI panels and terminal emulators.
 
 ```mermaid
 flowchart TD
-    subgraph ClaudeEngine["Claude Code 2.1 Engine"]
+    subgraph ClaudeEngine["Claude 2.1 Engine (Desktop Code Tab & CLI)"]
         Core["Interactive Loop & Agent"]
         Bus["Engine Event Bus"]
         State["Reactive State Store (Atoms)"]
-        UI["Terminal Render Surfaces"]
+        UI["Dual-Surface UI (Desktop Panes & Terminal Ink)"]
     end
 
     subgraph Plugins["ami-claude-mods Suite"]
@@ -83,9 +85,9 @@ flowchart TD
 
 ## Tech Stack
 
-- **Runtime:** Claude Code CLI (Early Access 2.1.x)
+- **Runtime:** Claude Desktop & Claude Code CLI (Early Access 2.1.x+)
 - **Language:** TypeScript 5.4+ (ESNext, Bundler resolution)
-- **UI Toolkit:** Native Terminal React/Ink JSX (`h`, `Fragment` globals resolved via `$.ui.resolve`)
+- **UI Toolkit:** Dual-surface UI (`Pane`, `AbovePrompt`, `StatusBar`, `Toast`) resolved via `$.ui.resolve`
 - **State Management:** Reactive atoms (`atom`, `read`, `update` from `'claude-code'`)
 - **Testing Framework:** `'claude-code/testing'` runner (`claude plugin test`)
 
@@ -95,23 +97,17 @@ flowchart TD
 
 ### Prerequisites
 
-- Claude Code CLI installed (`claude --version` >= 2.1.314)
-- Node.js 22+ (mandated by Claude Code CLI)
+- **Claude Desktop** application (with Code tab enabled) or **Claude Code CLI** (`claude --version` >= 2.1.314)
+- Node.js 22+ (for development, installation scripts, and testing)
 - Git 2.40+
 
 ### Installation & Setup
 
-You can load mods for a single session, persist them across all terminal sessions, or install pre-packaged bundles directly from GitHub Releases.
+You can configure mods to load automatically into **Claude Desktop**, persist them across all terminal sessions, run them ad-hoc via CLI flags, or install pre-packaged bundles directly from GitHub Releases.
 
-#### Method A: Direct Command-Line Flag (Fastest for Testing)
+#### Method 1: Claude Desktop Setup (Primary GUI Workflow)
 
-Load one or more mods directly when starting Claude Code:
-
-```bash
-claude --plugin-dir mods/hooks-viewer --plugin-dir mods/undelegated-reads
-```
-
-#### Method B: Persistent Setup via Settings or Shell Profile (Recommended)
+Claude Desktop loads plugins declaratively from your global configuration file:
 
 1. **Synchronize mods to your local Claude directory:**
    ```bash
@@ -119,39 +115,50 @@ claude --plugin-dir mods/hooks-viewer --plugin-dir mods/undelegated-reads
    ```
    This copies all six mods into `~/.claude/mods/`.
 
-2. **Configure persistence:**
-   - **Option 1: In `~/.claude/settings.json` (Cross-shell):**
-     Add the `CLAUDE_CODE_PLUGIN_DIRS` key to your global settings file:
-     ```json
-     {
-       "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/child-sessions:~/.claude/mods/cleanroom-guard:~/.claude/mods/close-checklist:~/.claude/mods/context-guard:~/.claude/mods/hooks-viewer:~/.claude/mods/undelegated-reads"
-     }
-     ```
-     *(On Windows, use semicolons `;` as the path delimiter, e.g. `C:/Users/<username>/.claude/mods/...`)*.
+2. **Configure persistence in `~/.claude/settings.json`:**
+   Add the `CLAUDE_CODE_PLUGIN_DIRS` setting to your global settings:
+   ```json
+   {
+     "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/child-sessions:~/.claude/mods/cleanroom-guard:~/.claude/mods/close-checklist:~/.claude/mods/context-guard:~/.claude/mods/hooks-viewer:~/.claude/mods/undelegated-reads"
+   }
+   ```
+   *(On Windows, use semicolons `;` as the path delimiter, e.g. `C:/path/to/.claude/mods/...`)*.
 
-   - **Option 2: In your shell profile (`~/.bashrc`, `~/.zshrc`, or `$PROFILE`):**
-     Print the exact export statement tailored to your OS with:
-     ```bash
-     npm run install-mods -- --print-env
-     ```
-     Paste the generated line into your shell profile to load mods in every session.
+3. **Open Claude Desktop:** Switch to the **Code** tab. All mods load automatically with native sidebar panes, banners, and status gauges.
 
-#### Method C: Direct Download from GitHub Releases (No Node.js Required)
+#### Method 2: Persistent CLI Setup (Terminal Workflow)
+
+- **Option A (Global Settings):** If you completed Method 1, Claude Code CLI automatically detects the same `~/.claude/settings.json` and loads the mods in every terminal session.
+- **Option B (Shell Profile):** Export the variable directly in your shell profile (`~/.bashrc`, `~/.zshrc`, or `$PROFILE` in PowerShell):
+  ```bash
+  npm run install-mods -- --print-env
+  ```
+  Paste the printed export instruction into your shell profile.
+
+#### Method 3: Direct Command-Line Flag (Fast Testing in CLI)
+
+Load one or more mods directly when starting a specific CLI session:
+
+```bash
+claude --plugin-dir mods/hooks-viewer --plugin-dir mods/undelegated-reads
+```
+
+#### Method 4: Direct Download from GitHub Releases (No Node.js Required)
 
 1. Download the pre-packaged zip bundle from [GitHub Releases](https://github.com/AnaCataVC/ami-claude-mods/releases) (e.g. `ami-claude-mods-all-v1.0.0.zip` or individual mod archives).
 2. Extract the archive into your preferred directory (e.g. `~/.claude/mods/`).
-3. Launch Claude Code pointing to the extracted folders:
+3. Add the extracted directory to `~/.claude/settings.json` (for Desktop & CLI) or launch Claude Code with `--plugin-dir`:
    ```bash
    claude --plugin-dir ~/.claude/mods/hooks-viewer
    ```
 
 ### Verifying Loaded Mods
 
-Once Claude Code starts, confirm that your mods are active:
+Once Claude Desktop or Claude Code starts, confirm that your mods are active:
 
-1. Run `/hooks-panel` to open the interactive **`hooks-viewer`** side pane listing all active plugins and hooks.
-2. Run `/checklist` to trigger **`close-checklist`** and inspect your pending Git changes, Docker containers, and background tasks.
-3. Observe the bottom status bar: **`undelegated-reads`** and **`context-guard`** display real-time read gauges and active environment profiles.
+1. Run `/hooks-panel` to open the interactive **`hooks-viewer`** side pane listing all active plugins, hooks, and settings layers.
+2. Run `/checklist` to trigger **`close-checklist`** and inspect uncommitted Git changes, Docker containers, and background tasks before finishing your work.
+3. Check status indicators: **`undelegated-reads`** and **`context-guard`** display real-time read gauges and active environment profiles.
 
 ### Validating Mods
 
@@ -193,13 +200,14 @@ For a full breakdown of the CI/CD pipelines, release packaging, and Git hooks, s
 
 ## Key Learnings & Architectural Decisions
 
-For an in-depth breakdown of technical constraints, engine bugs prevented, and packaging rules, see [docs/learnings.md](docs/learnings.md).
+For an in-depth breakdown of technical constraints, engine bugs prevented, and packaging rules, see the dedicated knowledge base in [docs/learning/](docs/learning/).
 
 1. **Host-Gated Isolation over Node.js Runtime:** Claude Code plugins do not run inside an unconstrained Node.js process. They operate in an isolated ESM container without `require()` or arbitrary `fs` access. All I/O flows through the `$` engine handle (`$.fs`, `$.process`, `$.settings`), guaranteeing sandboxed safety and uniform cross-platform behavior across Windows, macOS, and Linux.
 2. **Top-Level Function Scope for Engine Reference (`$`):** Static analysis in the plugin validator strictly enforces that the engine parameter `$` cannot be passed to nested lambdas or functions declared inside the `register` hook closure. Helper functions requiring `$` must be declared as top-level module functions (`async function helper($: Engine) { ... }`).
 3. **Double-Blind Cleanroom Synergy:** Automated TDD with AI agents suffers from confirmation bias when test writers inspect source implementations. By implementing `cleanroom-guard`, we decouple the builder (`ami-cleanroom-builder`) and the test author (`ami-cleanroom-tester`), enabling seamless integration with the `ami-orchestrate-cleanroom` skill from Amiga IA.
 4. **Declarative State Registration in TypeScript Declarations:** Any atomic key managed by a plugin (`atom({ plugin, key })`) must be formally declared in `types/index.d.ts` extending `interface PluginState`. Failure to declare state keys triggers compilation and validation rejection, preventing untyped state collisions across active plugins.
 5. **Configurable Profile Guards for Multi-Tenant Workstations:** Hardcoding account usernames or directory paths destroys open-source portability. By abstracting `context-guard` into a declarative JSON schema (`context-guard.json`), developers can map custom corporate and personal folders, prevent bare `kubectl` mutations, and prevent accidental Git commits across distinct GitHub profiles.
+6. **Dual Host Environment Parity (Desktop GUI & CLI Terminal):** The Claude engine resolves UI elements through `$.ui.resolve` to allow plugins to run identically in both Claude Desktop and the terminal CLI. In Claude Desktop, panels like `hooks-viewer` render as interactive side drawers while status metrics and banners anchor directly above the prompt and status footer. Configuration persistence is centralized via `~/.claude/settings.json`, ensuring both desktop and terminal sessions share active mods automatically.
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "name": "ami-claude-mods",
   "version": "0.2.0",
-  "description": "Essential production-grade mods and function hooks for Claude Code CLI",
+  "description": "Essential production-grade mods and function hooks for Claude Desktop and Claude Code CLI",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
     "prepare": "node scripts/setup-hooks.js"
   },
   "keywords": [
+    "claude-desktop",
     "claude-code",
     "claude-code-plugin",
     "claude-mods",

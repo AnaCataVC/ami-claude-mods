@@ -26,7 +26,7 @@ if (printEnv) {
 }
 
 const targetBase = join(homedir(), '.claude', 'mods')
-console.log(`Installing ${mods.length} Claude Code mods to: ${targetBase}\n`)
+console.log(`Installing ${mods.length} Claude Desktop and Claude Code mods to: ${targetBase}\n`)
 
 if (!existsSync(targetBase)) {
   mkdirSync(targetBase, { recursive: true })
@@ -40,4 +40,4 @@ for (const mod of mods) {
 }
 
 console.log(`\nSuccessfully installed all ${mods.length} mods to ${targetBase}`)
-console.log(`You can now start Claude Code and verify with /hooks-panel`)
+console.log(`You can now open Claude Desktop (Code tab) or launch Claude Code CLI and verify with /hooks-panel`)

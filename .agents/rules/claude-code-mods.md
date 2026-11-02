@@ -1,6 +1,6 @@
-# Claude Code Plugin & Function Hooks Development Guidelines
+# Claude Desktop & Claude Code Plugin & Function Hooks Development Guidelines
 
-Directives and invariants for developing, testing, and packaging plugins for Claude Code CLI (2.1+).
+Directives and invariants for developing, testing, and packaging plugins for Claude Desktop (Code tab) and Claude Code CLI (2.1+).
 
 ---
 

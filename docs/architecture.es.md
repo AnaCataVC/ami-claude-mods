@@ -2,13 +2,17 @@
 
 [English](architecture.md) | [Español](architecture.es.md)
 
-Referencia técnica integral de `ami-claude-mods`, detallando el modelo de integración, ciclo de vida de los hooks, persistencia reactiva de estado y paradigmas de prueba en Claude Code.
+Referencia técnica integral de `ami-claude-mods`, detallando el modelo de integración, ciclo de vida de los hooks, persistencia reactiva de estado, entornos anfitriones duales (Claude Desktop y Claude Code CLI) y paradigmas de prueba.
 
 ---
 
 ## 1. Sandbox de Ejecución y Modelo de Aislamiento
 
-Los mods de Claude Code operan dentro de un entorno de módulos ECMAScript gestionado directamente por el motor.
+Los mods de Claude operan dentro de un entorno de módulos ECMAScript gestionado directamente por el motor, dando vida tanto a **Claude Desktop** (pestaña integrada de Code) como a **Claude Code CLI** con total paridad funcional y contractual.
+
+### Entornos Anfitriones y Paridad de Superficie
+- **Claude Desktop:** Actúa como la estación de trabajo visual principal. Los paneles laterales (`Pane`) se despliegan como barras interactivas de escritorio, `AbovePrompt` se ancla sobre la caja de entrada de texto/código, y `$.ui.status` se refleja en la barra inferior persistente de estado.
+- **Claude Code CLI:** Orientado a entornos de terminal. Los componentes se resuelven en elementos terminales React/Ink, integrando paneles y barras directamente en los flujos de la consola.
 
 ### Restricciones e Invariantes
 - **Sin APIs Directas de Node.js:** Los plugins no pueden importar `node:fs`, `node:child_process` o `node:path`. Toda interacción con el sistema se realiza mediante `$.fs` y `$.process`.
@@ -85,5 +89,5 @@ En el desarrollo guiado por pruebas (TDD), el aislamiento de información entre 
 ## 5. Especificaciones Técnicas Relacionadas
 
 - **Automatizaciones y Pipelines de CI/CD:** Consulta la [Referencia de Automatizaciones y Flujos de Trabajo](automations.es.md) para detalles sobre hooks pre-push, pruebas en matriz multi-SO y empaquetado de releases.
-- **Invariantes y Aprendizajes Arquitectónicos:** Consulta [Aprendizajes Clave e Invariantes Arquitectónicos](learnings.es.md) para restricciones críticas, prevención de errores del motor y lecciones de runtime.
+- **Invariantes y Aprendizajes Arquitectónicos:** Consulta [Aprendizajes Clave e Invariantes Arquitectónicos](learning/README.es.md) para guías individuales de patrones, restricciones del motor y lecciones de runtime.
 

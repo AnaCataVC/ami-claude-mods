@@ -2,13 +2,17 @@
 
 [English](architecture.md) | [Español](architecture.es.md)
 
-Comprehensive technical reference for `ami-claude-mods`, explaining the integration model, lifecycle hooks, state persistence, and testing paradigms of Claude Code plugins.
+Comprehensive technical reference for `ami-claude-mods`, explaining the integration model, lifecycle hooks, state persistence, dual-surface host environments (Claude Desktop & Claude Code CLI), and testing paradigms.
 
 ---
 
 ## 1. Execution Sandbox & Isolation Model
 
-Claude Code mods run in an ECMAScript module runtime hosted directly by the engine.
+Claude mods run in an ECMAScript module runtime hosted directly by the engine, powering both **Claude Desktop** (integrated Code tab) and **Claude Code CLI** with complete feature and contract parity.
+
+### Host Environments & Surface Parity
+- **Claude Desktop:** Serves as the primary visual workstation. Side panels (`Pane`) render as interactive desktop sidebars, `AbovePrompt` anchors cleanly above the text/code input field, and `$.ui.status` reflects in the persistent bottom status bar.
+- **Claude Code CLI:** Serves terminal developers. Components resolve into React/Ink terminal elements, with panes and status rows rendered directly in terminal output streams.
 
 ### Constraints & Invariants
 - **No Direct Node.js APIs:** Plugins cannot import `node:fs`, `node:child_process`, or `node:path`. All filesystem and process calls are executed via `$.fs` and `$.process`.
@@ -85,5 +89,5 @@ In Test-Driven Development (TDD), information isolation between implementer and 
 ## 5. Related Technical Specifications
 
 - **Automations & CI/CD Pipelines:** See [Automations & Workflow Reference](automations.md) for pre-push hooks, multi-OS matrix testing, and release packaging.
-- **Architectural Learnings & Invariants:** See [Key Learnings & Architectural Invariants](learnings.md) for critical constraints, engine bugs prevented, and runtime lessons.
+- **Architectural Learnings & Invariants:** See [Key Learnings & Architectural Invariants](learning/README.md) for individual pattern guides, engine constraints, and runtime lessons.
 

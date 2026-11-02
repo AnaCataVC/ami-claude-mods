@@ -79,14 +79,14 @@ Todos los scripts son módulos multiplataforma de Node.js ubicados en `scripts/`
 | `npm test` | [`scripts/test-all.js`](../scripts/test-all.js) | Descubre todos los mods en `mods/` y ejecuta `claude plugin test` de forma secuencial. Finaliza con error si alguna prueba falla. |
 | `npm run validate` | [`scripts/validate-all.js`](../scripts/validate-all.js) | Ejecuta `claude plugin validate` sobre cada mod verificando el manifiesto (`plugin.json`), hooks (`hooks.json`) y contratos de estado atómico. |
 | `npm run package` | [`scripts/package-all.js`](../scripts/package-all.js) | Genera archivos `.zip` independientes para cada plugin y un paquete maestro en `releases/` sin dependencias externas usando `tar` nativo. |
-| `npm run install-mods` | [`scripts/install-mods.js`](../scripts/install-mods.js) | Sincroniza todos los mods hacia `$HOME/.claude/mods/`. Con `--print-env`, imprime la exportación exacta para `CLAUDE_CODE_PLUGIN_DIRS`. |
+| `npm run install-mods` | [`scripts/install-mods.js`](../scripts/install-mods.js) | Sincroniza todos los mods hacia `$HOME/.claude/mods/` para habilitar la persistencia en Claude Desktop y CLI. Con `--print-env`, imprime la exportación exacta para `CLAUDE_CODE_PLUGIN_DIRS`. |
 | `npm run prepare` | [`scripts/setup-hooks.js`](../scripts/setup-hooks.js) | Configura el repositorio Git para activar `.githooks/` como la ruta de hooks locales. |
 
 ---
 
-## 3. Automatizaciones de Dominio y Hooks en Runtime (Claude Code)
+## 3. Automatizaciones de Dominio y Hooks en Runtime (Claude Desktop y CLI)
 
-El repositorio incorpora guardas reactivas y paneles de terminal que el motor de Claude Code carga dinámicamente:
+El repositorio incorpora guardas reactivas, monitores en segundo plano y paneles de interfaz que Claude Desktop y la CLI de Claude Code cargan dinámicamente:
 
 | Mod | Evento Interceptado del Motor | Invariante Automatizado Garantizado |
 | :--- | :--- | :--- |
