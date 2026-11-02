@@ -3,9 +3,8 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { ContextGuardConfig, Snapshot } from '../types'
 import { denyCommand } from './commands'
-import { MIN_GAP_MS, isContextCommand, parseGhAccount, parseKubeContext, statusText, warnings } from './context'
+import { MIN_GAP_MS, isContextCommand, parseGhAccount, parseKubeContext, statusText } from './context'
 
-const snapshot = atom({ plugin: 'context-guard', key: 'snapshot' } as const, null)
 const configAtom = atom({ plugin: 'context-guard', key: 'config' } as const, null as ContextGuardConfig | null)
 
 type Engine = EngineInterface
@@ -62,7 +61,6 @@ let inFlight: Promise<void> | null = null
 async function readAndPublish($: Engine): Promise<void> {
   try {
     const [next, config] = await Promise.all([readSnapshot($), loadConfig($)])
-    await update($, snapshot, () => next)
     await update($, configAtom, () => config)
     $.ui.status(statusText(next, await $.session.cwd(), config))
   } finally {
@@ -94,22 +92,4 @@ export const register: Register = on => {
       return ran
     }).catch(($, e, next) => next(e))
   }
-
-  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const current = await read($, snapshot)
-    const config = await read($, configAtom) ?? undefined
-    const found = current ? warnings(current, await $.session.cwd(), config) : []
-    if (found.length === 0) return next(e)
-
-    const { Box, Text } = $.ui.resolve(e)
-    return (
-      <Box flexDirection="column">
-        {found.map(warning => (
-          <Text key={warning.text} color={warning.level === 'error' ? 'red' : 'yellow'} bold wrap="truncate-end">
-            {warning.level === 'error' ? '✗' : '⚠'} {warning.text}
-          </Text>
-        ))}
-      </Box>
-    )
-  })
 }

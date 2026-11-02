@@ -1,9 +1,7 @@
 // Delegation meter rules: the count of consecutive mechanical read calls in the main
-// session, the block at THRESHOLD and the display levels derived from the count.
+// session, the block at THRESHOLD and the count from which the gauge is shown.
 export const THRESHOLD = 10
-const WARN_FROM = THRESHOLD - 3
-
-export type Level = 'none' | 'quiet' | 'warn' | 'cut'
+export const WARN_FROM = THRESHOLD - 3
 
 export type Step = { count: number; blocked: boolean }
 
@@ -32,28 +30,11 @@ export function denyMessage(count: number): string {
   return `${count} consecutive mechanical reads without delegating: dispatch to an exploration subagent or proceed (counter resets).`
 }
 
-// The count resets at the blocked call, so the highest visible count is THRESHOLD - 1,
-// the one right before the cut.
-export function levelOf(count: number): Level {
-  if (count <= 0) return 'none'
-  if (count >= THRESHOLD - 1) return 'cut'
-  return count >= WARN_FROM ? 'warn' : 'quiet'
-}
-
 // A gauge reads as "how close to the block" at a glance, which a bare fraction does not.
+// Below WARN_FROM there is nothing to warn about, so the status is cleared. The count resets
+// at the blocked call, so the highest visible count is THRESHOLD - 1.
 export function statusText(count: number): string | undefined {
-  if (levelOf(count) === 'none') return undefined
+  if (count < WARN_FROM) return undefined
   const gauge = '▰'.repeat(count) + '▱'.repeat(THRESHOLD - count)
-  return `undelegated reads ${gauge} ${count}/${THRESHOLD}`
-}
-
-export function bandText(count: number): string | undefined {
-  const level = levelOf(count)
-  if (level === 'warn') return `${count} of ${THRESHOLD} consecutive mechanical reads: consider delegating further exploration to a subagent`
-  if (level === 'cut') return `${count} of ${THRESHOLD} consecutive mechanical reads: next call will be blocked, delegate to a subagent`
-  return undefined
-}
-
-export function bandColor(count: number): 'yellow' | 'red' {
-  return levelOf(count) === 'cut' ? 'red' : 'yellow'
+  return `lecturas sin delegar ${gauge} ${count}/${THRESHOLD}`
 }

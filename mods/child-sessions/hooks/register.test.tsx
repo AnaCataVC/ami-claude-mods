@@ -180,7 +180,7 @@ test('reply copies the instruction when prompt drops it, keeping peer waiting', 
     const ui = await mountBand($, surface)
     await ui.press({ key: `reply:${ADDRESS}` })
     expect(calls.copies.at(-1)).toContain(`Read the latest message from Review and reply to it`)
-    expect(calls.toasts.at(-1)).toContain('copied to clipboard')
+    expect(calls.toasts.at(-1)).toContain('copiada al portapapeles')
     expect(await ui.find({ key: `reply:${ADDRESS}` })).toBeDefined()
     await ui.unmount()
   }
@@ -192,15 +192,28 @@ test('view shows full message and hide closes it', async ($, on) => {
   await receive($, ADDRESS, 'Review', body)
   for (const surface of SURFACES) {
     const ui = await mountBand($, surface)
-    expect((await ui.find({ key: `view:${ADDRESS}` }))?.props.label).toBe('view')
+    expect((await ui.find({ key: `view:${ADDRESS}` }))?.props.label).toBe('ver')
     await ui.press({ key: `view:${ADDRESS}` })
     const shown = await ui.find({ type: 'Text', text: /^line 1\n/ })
     expect(shown?.text).toBe([...body.split('\n').slice(0, 12), '…'].join('\n'))
-    expect((await ui.find({ key: `view:${ADDRESS}` }))?.props.label).toBe('hide')
+    expect((await ui.find({ key: `view:${ADDRESS}` }))?.props.label).toBe('ocultar')
     await ui.press({ key: `view:${ADDRESS}` })
     expect(await ui.find({ type: 'Text', text: /^line 1\n/ })).toBeUndefined()
     await ui.unmount()
   }
+})
+
+test('each row replies by its digit and only the top row takes letter hotkeys', async ($, on) => {
+  fakeEngine(on)
+  await receive($, ADDRESS, 'Review', 'Should I wait or deploy?')
+  await receive($, OTHER, 'Deploy', 'PR open, tests green')
+  const ui = await mountBand($, 'terminal')
+  expect((await ui.find({ key: `reply:${ADDRESS}` }))?.props.hotkey).toBe('1')
+  expect((await ui.find({ key: `reply:${OTHER}` }))?.props.hotkey).toBe('2')
+  expect((await ui.find({ key: `done:${ADDRESS}` }))?.props.hotkey).toBe('d')
+  expect((await ui.find({ key: `done:${OTHER}` }))?.props.hotkey).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /ctrl\+x tab/ })).toBeDefined()
+  await ui.unmount()
 })
 
 test('dismiss removes the peer from the band', async ($, on) => {

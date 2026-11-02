@@ -84,14 +84,14 @@ const base = { git: null, docker: null, scratchFiles: null, files: [] }
 test('git changes and unpushed commits warn when present', () => {
   const git = { branch: 'main', changes: 3, unpushed: 2 }
   const sections = buildSections({ ...base, git })
-  expect(sections[0]!.title).toBe('Git Status')
+  expect(sections[0]!.title).toBe('Estado de Git')
   expect(sections[0]!.items.filter(i => !i.ok).length).toBe(2)
 })
 
 test('docker down reads as not running, leftovers warn, sections without data are skipped', () => {
   const down = buildSections({ ...base, docker: { status: 'down' } })
-  expect(down.map(s => s.title)).toEqual(['Docker', 'Files Created Outside Project'])
-  expect(down[0]!.items[0]).toEqual({ ok: true, text: 'Docker is not running' })
+  expect(down.map(s => s.title)).toEqual(['Docker', 'Archivos creados fuera del proyecto'])
+  expect(down[0]!.items[0]).toEqual({ ok: true, text: 'Docker no está corriendo' })
   const up = buildSections({ ...base, docker: { status: 'up', containers: ['pg'], composes: [], volumes: ['v'], unverified: [] } })
   expect(up[0]!.items.every(i => !i.ok)).toBe(true)
 })
@@ -100,5 +100,5 @@ test('summarize formats single and plural pending count', () => {
   const clean = buildSections({ ...base, files: [] })
   expect(summarize(clean)).toBeUndefined()
   const dirty = buildSections({ ...base, files: ['C:/outside.txt'] })
-  expect(summarize(dirty)).toBe('Before closing: 1 pending item, check /checklist')
+  expect(summarize(dirty)).toBe('Antes de cerrar: 1 ítem pendiente, revisa /cierre')
 })

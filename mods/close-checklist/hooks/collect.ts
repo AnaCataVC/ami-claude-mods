@@ -35,7 +35,7 @@ export async function collectDocker(run: Runner, state: Tracked): Promise<Docker
     if (list.status === 'ok') {
       const present = new Set(list.stdout.split('\n').map(line => line.trim()))
       leftoverVolumes = volumes.filter(name => present.has(name))
-    } else unverified.push(...volumes.map(name => `volume ${name}`))
+    } else unverified.push(...volumes.map(name => `el volumen ${name}`))
   }
 
   const upComposes: string[] = []
@@ -44,7 +44,7 @@ export async function collectDocker(run: Runner, state: Tracked): Promise<Docker
     const project = compose.project === undefined ? [] : ['-p', compose.project]
     const program = compose.legacy ? ['docker-compose'] : ['docker', 'compose']
     const ids = await run([...program, ...files, ...project, 'ps', '-q'], compose.dir)
-    if (ids.status !== 'ok') unverified.push(`compose project ${composeLabel(compose)}`)
+    if (ids.status !== 'ok') unverified.push(`el proyecto compose ${composeLabel(compose)}`)
     else if (ids.stdout.trim() !== '') upComposes.push(composeLabel(compose))
   }
 

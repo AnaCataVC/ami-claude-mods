@@ -11,8 +11,6 @@ const REFRESH_TRIGGERS = [
 
 export const MIN_GAP_MS = 30_000
 
-export type Warning = { level: 'error' | 'warn'; text: string }
-
 export function normalize(path: string): string {
   return path.replace(/[\\/]+/g, '/').replace(/\/$/, '').toLowerCase()
 }
@@ -91,41 +89,20 @@ export function statusText(snapshot: Snapshot, cwd: string, config?: ContextGuar
   if (snapshot.gh) {
     const isMismatch = isAccountMismatch(snapshot.gh, cwd, config?.profiles)
     const label = accountLabel(snapshot.gh, matched)
-    parts.push(`GitHub: ${label}${isMismatch ? ' ✗ mismatch' : matched ? ' ✓' : ''}`)
+    parts.push(`GitHub: ${label}${isMismatch ? ' ✗ no coincide' : matched ? ' ✓' : ''}`)
   } else {
-    parts.push('GitHub: no account')
+    parts.push('GitHub: sin cuenta')
   }
 
   if (snapshot.kube) {
     const label = kubeLabel(snapshot.kube)
-    const isProd = isProdContext(snapshot.kube)
+    const isProd = (config?.warnProductionKube ?? true) && isProdContext(snapshot.kube)
     parts.push(`kubectl: ${label}${isProd ? ' ⚠ prod' : ''}`)
   }
 
   if (matched?.disallowCommits) {
-    parts.push('no direct commits configured')
+    parts.push('sin commits directos')
   }
 
   return parts.join(' · ')
-}
-
-export function warnings(snapshot: Snapshot, cwd: string, config?: ContextGuardConfig): Warning[] {
-  const list: Warning[] = []
-  const matched = findMatchingProfile(cwd, config?.profiles)
-
-  if (snapshot.gh && matched && snapshot.gh.toLowerCase() !== matched.expectedGhUser.toLowerCase()) {
-    list.push({
-      level: 'error',
-      text: `GitHub account mismatch: active "${snapshot.gh}" does not match profile "${matched.expectedGhUser}" for ${matched.path}`,
-    })
-  }
-
-  if (snapshot.kube && (config?.warnProductionKube ?? true) && isProdContext(snapshot.kube)) {
-    list.push({
-      level: 'warn',
-      text: `Active Kubernetes context is PRODUCTION: ${snapshot.kube}`,
-    })
-  }
-
-  return list
 }

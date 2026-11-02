@@ -14,6 +14,7 @@ const MANIFEST = '{ "name": "demo-mod", "version": "0.3.0", "description": "x" }
 function fakeEngine(on: On) {
   const store = new Map<string, unknown>()
   const opened: string[] = []
+  const focused: unknown[] = []
   let version = 0
   on('state.get', async (_$, e) => ({ value: { value: store.get(e.key), version } }) as never)
   on('state.set', async (_$, e) => {
@@ -28,27 +29,32 @@ function fakeEngine(on: On) {
   on('session.start', async (_$, e) => ({ cwd: e.cwd }) as never)
   on('ui.open', async (_$, e) => {
     opened.push((e as unknown as { id: string }).id)
+    focused.push((e as unknown as { focus?: boolean }).focus)
     return { value: { isPlaced: true } } as never
   })
-  return { opened }
+  return { opened, focused }
 }
 
-test('session start opens the pane by itself and the pane lists hooks and mods on every surface', async ($, on) => {
+test('session start does not open the pane; it lists hooks and mods on every surface', async ($, on) => {
   const engine = fakeEngine(on)
   await $.session.start({ source: 'startup', cwd: '/' } as never)
-  expect(engine.opened).toEqual(['hooks-viewer'])
+  expect(engine.opened).toEqual([])
 
   for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
     expect((await ui.find({ type: 'Text', text: /stop\.ps1/ }))?.text).toContain('stop.ps1')
     expect((await ui.find({ type: 'Text', text: /demo-mod/ }))?.text).toContain('v0.3.0')
+    const refresh = await ui.find({ type: 'Button' })
+    expect(refresh?.props).toMatchObject({ label: '↻ actualizar', hotkey: 'r', autoFocus: true })
     await ui.unmount()
   }
 })
 
-test('the command replies with the listing as text', async ($, on) => {
-  fakeEngine(on)
+test('the command opens the pane focused and replies with the listing as text', async ($, on) => {
+  const engine = fakeEngine(on)
   const reply = await $.command.run({ command: 'hooks-panel' } as never)
+  expect(engine.opened).toEqual(['hooks-viewer'])
+  expect(engine.focused).toEqual([true])
   // The fake answers every source with the same hooks: five sources, five rows.
   expect(reply.text).toContain('Hooks de settings (5)')
   expect(reply.text).toContain('[*] stop.ps1')

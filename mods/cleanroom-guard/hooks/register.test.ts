@@ -25,6 +25,14 @@ test('denies by the calling subagent type, never on the main loop', async ($, on
   expect((await read('tests/test_x.py')).deny).toBeUndefined()
 })
 
+test('toast is Spanish with the basename while the deny reason stays English with the full path', async ($, on) => {
+  const toasts: string[] = []
+  fakeEngine(on, toasts)
+  const result = await $.tool.call({ tool: 'Write', file_path: 'C:\\repo\\src\\app.py', agentId: 'tw1' } as never)
+  expect(result.deny).toContain('may only write tests (C:\\repo\\src\\app.py)')
+  expect(toasts[0]).toBe('cleanroom: bloqueé a test-writer-jr escribir app.py')
+})
+
 test('a block toasts the rule once per window; a later block after the gap toasts again', async ($, on) => {
   const toasts: string[] = []
   const clock = { now: 5_000_000 }
@@ -33,7 +41,7 @@ test('a block toasts the rule once per window; a later block after the gap toast
   expect((await read()).deny).toBeDefined()
   expect((await read()).deny).toBeDefined()
   expect(toasts.length).toBe(1)
-  expect(toasts[0]).toContain('cleanroom')
+  expect(toasts[0]).toBe('cleanroom: bloqueé a code-implementer-jr leer test_x.py')
   clock.now += 21_000
   await read()
   expect(toasts.length).toBe(2)

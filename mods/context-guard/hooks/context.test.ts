@@ -10,7 +10,6 @@ import {
   parseGhAccount,
   parseKubeContext,
   statusText,
-  warnings,
 } from './context'
 
 const PROFILES = [
@@ -65,10 +64,16 @@ test('statusText formats account and kubernetes status clearly', () => {
   expect(statusText(snap, 'C:\\work\\projects\\app', { profiles: PROFILES })).toBe('GitHub: Work ✓ · kubectl: staging-ctx')
 })
 
-test('warnings report account mismatch and production kubernetes cluster', () => {
+test('statusText flags account mismatch and production kubernetes cluster', () => {
   const snap = { gh: 'other-user', kube: 'prod-cluster' }
-  const found = warnings(snap, 'C:\\work\\projects\\app', { profiles: PROFILES, warnProductionKube: true })
-  expect(found.length).toBe(2)
-  expect(found[0]?.level).toBe('error')
-  expect(found[1]?.level).toBe('warn')
+  expect(statusText(snap, 'C:\\work\\projects\\app', { profiles: PROFILES })).toBe(
+    'GitHub: other-user ✗ no coincide · kubectl: prod-cluster ⚠ prod',
+  )
+})
+
+test('statusText omits the production flag when warnProductionKube is disabled', () => {
+  const snap = { gh: 'work-dev', kube: 'prod-cluster' }
+  expect(statusText(snap, 'C:\\work\\projects\\app', { profiles: PROFILES, warnProductionKube: false })).toBe(
+    'GitHub: Work ✓ · kubectl: prod-cluster',
+  )
 })

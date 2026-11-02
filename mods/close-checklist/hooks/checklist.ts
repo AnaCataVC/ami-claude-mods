@@ -180,9 +180,9 @@ export const runningTracked = (psOutput: string, tracked: Tracked['containers'])
 
 /** Things the session opened that no query can confirm closed: the person decides. */
 export const lingeringItems = (tracked: Tracked): string[] => [
-  ...tracked.background.map(command => `Background process: ${command} (may still be running)`),
-  ...(tracked.isWorktreeOpen ? ['Unclosed worktree: run ExitWorktree before closing'] : []),
-  ...(tracked.schedules > 0 ? [`${tracked.schedules} active scheduled task(s) created in this session`] : []),
+  ...tracked.background.map(command => `Proceso en segundo plano: ${command} (puede seguir corriendo)`),
+  ...(tracked.isWorktreeOpen ? ['Worktree sin cerrar: ejecuta ExitWorktree antes de cerrar'] : []),
+  ...(tracked.schedules > 0 ? [`${tracked.schedules} tarea(s) programada(s) activa(s) creada(s) en esta sesión`] : []),
 ]
 
 export const scratchpadDir = (temp: string, cwd: string, sessionId: string): string =>
@@ -209,43 +209,43 @@ const warn = (text: string): ChecklistItem => ({ ok: false, text })
 const gitItems = (git: GitInfo): ChecklistItem[] => {
   const changes =
     git.changes === 0
-      ? ok('No uncommitted changes')
-      : warn(`${git.changes} uncommitted change${git.changes === 1 ? '' : 's'}`)
+      ? ok('Sin cambios sin commitear')
+      : warn(`${git.changes} cambio${git.changes === 1 ? '' : 's'} sin commitear`)
   const unpushed =
     git.unpushed === null
-      ? ok('Branch has no upstream tracking')
+      ? ok('La rama no tiene upstream')
       : git.unpushed === 0
-        ? ok('No unpushed commits')
-        : warn(`${git.unpushed} unpushed commit${git.unpushed === 1 ? '' : 's'}`)
-  return [ok(`Branch: ${git.branch}`), changes, unpushed]
+        ? ok('Sin commits sin pushear')
+        : warn(`${git.unpushed} commit${git.unpushed === 1 ? '' : 's'} sin pushear`)
+  return [ok(`Rama: ${git.branch}`), changes, unpushed]
 }
 
 const dockerItems = (docker: DockerInfo): ChecklistItem[] => {
-  if (docker.status === 'down') return [ok('Docker is not running')]
-  if (docker.status === 'unknown') return [warn('Could not query Docker (timed out or unreachable)')]
+  if (docker.status === 'down') return [ok('Docker no está corriendo')]
+  if (docker.status === 'unknown') return [warn('No se pudo consultar Docker (tiempo agotado o inaccesible)')]
   const left = [
-    ...docker.containers.map(name => `container ${name} is still running`),
-    ...docker.composes.map(name => `compose project ${name} is still up`),
-    ...docker.volumes.map(name => `volume ${name} still exists`),
-    ...docker.unverified.map(what => `Could not verify ${what}`),
+    ...docker.containers.map(name => `el contenedor ${name} sigue corriendo`),
+    ...docker.composes.map(name => `el proyecto compose ${name} sigue arriba`),
+    ...docker.volumes.map(name => `el volumen ${name} todavía existe`),
+    ...docker.unverified.map(what => `No se pudo verificar ${what}`),
   ]
-  return left.length === 0 ? [ok('All containers/services started in this session are stopped')] : left.map(warn)
+  return left.length === 0 ? [ok('Todos los contenedores/servicios iniciados en esta sesión están detenidos')] : left.map(warn)
 }
 
 export const buildSections = (input: ChecklistInput): ChecklistSection[] => {
   const sections: ChecklistSection[] = []
-  if (input.git) sections.push({ title: 'Git Status', items: gitItems(input.git) })
+  if (input.git) sections.push({ title: 'Estado de Git', items: gitItems(input.git) })
   if (input.docker) sections.push({ title: 'Docker', items: dockerItems(input.docker) })
   if (input.scratchFiles !== null) {
     sections.push({
       title: 'Scratchpad',
-      items: [input.scratchFiles === 0 ? ok('Scratchpad empty') : warn(`${input.scratchFiles} file(s) in scratchpad`)],
+      items: [input.scratchFiles === 0 ? ok('Scratchpad vacío') : warn(`${input.scratchFiles} archivo(s) en el scratchpad`)],
     })
   }
-  if (input.lingering?.length) sections.push({ title: 'Lingering Tasks & Resources', items: input.lingering.map(warn) })
+  if (input.lingering?.length) sections.push({ title: 'Tareas y recursos pendientes', items: input.lingering.map(warn) })
   sections.push({
-    title: 'Files Created Outside Project',
-    items: input.files.length === 0 ? [ok('None')] : input.files.map(warn),
+    title: 'Archivos creados fuera del proyecto',
+    items: input.files.length === 0 ? [ok('Ninguno')] : input.files.map(warn),
   })
   return sections
 }
@@ -254,5 +254,5 @@ export const buildSections = (input: ChecklistInput): ChecklistSection[] => {
 export const summarize = (sections: ChecklistSection[]): string | undefined => {
   const pending = sections.flatMap(section => section.items).filter(item => !item.ok).length
   if (pending === 0) return undefined
-  return `Before closing: ${pending} pending item${pending === 1 ? '' : 's'}, check /checklist`
+  return `Antes de cerrar: ${pending} ítem${pending === 1 ? '' : 's'} pendiente${pending === 1 ? '' : 's'}, revisa /cierre`
 }

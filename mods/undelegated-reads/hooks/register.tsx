@@ -1,7 +1,7 @@
-import { atom, read, update } from 'claude-code'
+import { atom, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import { THRESHOLD, bandColor, bandText, denyMessage, meteredTool, statusText, step } from './meter'
+import { THRESHOLD, denyMessage, meteredTool, statusText, step } from './meter'
 
 const count = atom({ plugin: 'undelegated-reads', key: 'count' } as const, 0)
 
@@ -40,17 +40,4 @@ export const register: Register = on => {
     }
     return next(e)
   }).catch(($, e, next) => next(e))
-
-  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const current = await read($, count)
-    const text = bandText(current)
-    if (text === undefined) return next(e)
-
-    const { Box, Text } = $.ui.resolve(e)
-    return (
-      <Box>
-        <Text color={bandColor(current)}>{text}</Text>
-      </Box>
-    )
-  })
 }

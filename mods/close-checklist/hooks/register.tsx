@@ -20,7 +20,7 @@ import { collectDocker, collectGit } from './collect'
 import type { RunOutcome } from './collect'
 
 const PANE = 'close-checklist'
-const TITLE = 'Before Closing'
+const TITLE = 'Antes de cerrar'
 const SHORT_TIMEOUT_MS = 8000
 const SHELL_TOOLS = new Set(['Bash', 'PowerShell'])
 const FILE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit'])
@@ -106,18 +106,16 @@ async function trackToolCall($: Engine, e: ToolCallInput): Promise<void> {
 
 async function openPane($: Engine) {
   await refresh($)
-  await $.ui.open({ id: PANE, title: TITLE })
-  return { text: 'Checklist panel opened.' }
+  await $.ui.open({ id: PANE, title: TITLE, focus: true })
+  return { text: 'Panel de checklist abierto.' }
 }
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'checklist', description: 'Review pending items and resources before closing the session' })
-    await $.command.register({ name: 'cierre', description: 'Alias for /checklist' })
+    await $.command.register({ name: 'cierre', description: 'Revisa los pendientes y recursos antes de cerrar la sesión' })
     return next(e)
   })
 
-  on('command.run', { command: 'checklist' }, async $ => openPane($))
   on('command.run', { command: 'cierre' }, async $ => openPane($))
 
   for (const tool of [...SHELL_TOOLS, ...FILE_TOOLS, ...TRACKED_RESOURCE_TOOLS]) {
@@ -151,9 +149,9 @@ export const register: Register = on => {
     const list = await read($, sections)
     return (
       <Box flexDirection="column">
-        <Button label="↻ refresh" onPress={() => refresh($)} />
+        <Button label="actualizar" hotkey="r" plain autoFocus onPress={() => refresh($)} />
         {list === null ? (
-          <Text dimColor>No data available. Click ↻ refresh.</Text>
+          <Text dimColor>Sin datos. Presiona r para actualizar.</Text>
         ) : (
           list.map(section => (
             <Box key={section.title} flexDirection="column" marginTop={1}>

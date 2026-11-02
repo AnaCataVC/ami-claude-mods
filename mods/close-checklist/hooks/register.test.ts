@@ -54,13 +54,13 @@ const cleanGit = (argv: readonly string[]) =>
 const dirtyGit = (argv: readonly string[]) =>
   argv[0] === 'git' ? { exitCode: 0, stdout: '## main...origin/main [ahead 2]\n M a\n' } : { exitCode: 1, stdout: '' }
 
-test('session.start registers the /checklist and /cierre commands and opens the pane', async ($, on) => {
+test('session.start registers only the /cierre command and opens the pane', async ($, on) => {
   const engine = fakeEngine(on, cleanGit)
   await $.session.start({ source: 'startup', cwd: CWD } as never)
-  expect(engine.registered).toContain('checklist')
   expect(engine.registered).toContain('cierre')
-  const reply = await $.command.run({ command: 'checklist' } as never)
-  expect(reply.text).toBe('Checklist panel opened.')
+  expect(engine.registered).not.toContain('checklist')
+  const reply = await $.command.run({ command: 'cierre' } as never)
+  expect(reply.text).toBe('Panel de checklist abierto.')
 })
 
 test('a Bash call that ran is tracked; a denied or failed one is not', async ($, on) => {
@@ -91,7 +91,7 @@ test('a Write outside the project is tracked after it succeeded', async ($, on) 
 test('session.end toasts the pending count and costs one git process when dirty', async ($, on) => {
   const engine = fakeEngine(on, dirtyGit)
   await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sid', resume: {} } as never)
-  expect(engine.toasts).toEqual(['Before closing: 2 pending items, check /checklist'])
+  expect(engine.toasts).toEqual(['Antes de cerrar: 2 ítems pendientes, revisa /cierre'])
   expect(engine.processes).toEqual(['git status --porcelain=v1 --branch'])
 })
 
@@ -101,4 +101,19 @@ test('session.end stays silent when everything is clean, and runs nothing after 
   expect(engine.toasts).toEqual([])
   await $.session.end({ reason: 'clear', sessionId: 'sid', resume: {} } as never)
   expect(engine.toasts).toEqual([])
+})
+
+test('the pane draws a refresh button armed on the r hotkey', async ($, on) => {
+  fakeEngine(on, cleanGit)
+  const tree = await $.ui.render({ surface: 'terminal', component: 'Pane', requestId: 'close-checklist', props: {} } as never)
+  const buttons: { props: { hotkey?: string; label?: string } }[] = []
+  const walk = (node: unknown): void => {
+    if (typeof node !== 'object' || node === null) return
+    const element = node as { type?: string; children?: unknown }
+    if (element.type === 'Button') buttons.push(element as never)
+    const children = element.children
+    for (const child of Array.isArray(children) ? children.flat(Infinity) : [children]) walk(child)
+  }
+  walk(tree)
+  expect(buttons.map(button => button.props.hotkey)).toEqual(['r'])
 })

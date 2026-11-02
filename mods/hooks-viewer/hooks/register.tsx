@@ -60,15 +60,13 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'hooks-panel', description: 'Muestra los hooks de settings y los mods cargados' })
     await reload($)
-    // Open on its own: a pane only reachable through a command is one nobody sees.
-    void $.ui.open({ id: PANE, title: TITLE })
     return next(e)
   })
 
   // The reply carries the listing as text too, so it shows even where no surface draws the pane.
   on('command.run', { command: 'hooks-panel' }, async $ => {
     await reload($)
-    await $.ui.open({ id: PANE, title: TITLE })
+    await $.ui.open({ id: PANE, title: TITLE, focus: true })
     const list = (await read($, rows)) ?? []
     const loaded = (await read($, mods)) ?? []
     return { text: reportText(list, loaded) }
@@ -85,7 +83,7 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         <Box gap={2}>
-          <Button label="↻" onPress={() => reload($)} />
+          <Button label="↻ actualizar" hotkey="r" autoFocus plain onPress={() => reload($)} />
           <Text dimColor wrap="truncate-end">{summaryText(list, loaded)}</Text>
         </Box>
         {list.length === 0 ? <Text dimColor>No hay hooks configurados.</Text> : null}

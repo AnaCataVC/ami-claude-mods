@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { THRESHOLD, bandColor, bandText, denyMessage, levelOf, meteredTool, statusText, step } from './meter'
+import { THRESHOLD, WARN_FROM, denyMessage, meteredTool, statusText, step } from './meter'
 
 test('read-type tools add one, Agent and Task reset, other tools leave the count alone', () => {
   expect(step(3, 'Grep')).toEqual({ count: 4, blocked: false })
@@ -20,26 +20,12 @@ test('the deny message is one clean line carrying the count', () => {
   expect(denyMessage(10)).not.toContain('\n')
 })
 
-test('levels follow the count: hidden at 0, warn from threshold-3, cut right before the block', () => {
-  expect(levelOf(0)).toBe('none')
-  expect(levelOf(6)).toBe('quiet')
-  expect(levelOf(7)).toBe('warn')
-  expect(levelOf(8)).toBe('warn')
-  expect(levelOf(9)).toBe('cut')
-})
-
-test('status line shows a gauge with the count while above 0 and hides at 0', () => {
+test('status line is cleared below WARN_FROM and shows the gauge from WARN_FROM on', () => {
+  expect(WARN_FROM).toBe(7)
   expect(statusText(0)).toBeUndefined()
-  expect(statusText(4)).toBe('undelegated reads ▰▰▰▰▱▱▱▱▱▱ 4/10')
-  expect(statusText(THRESHOLD - 1)).toBe('undelegated reads ▰▰▰▰▰▰▰▰▰▱ 9/10')
-})
-
-test('the band appears from 7, yellow, and red at the cut', () => {
-  expect(bandText(6)).toBeUndefined()
-  expect(bandText(7)).toBe('7 of 10 consecutive mechanical reads: consider delegating further exploration to a subagent')
-  expect(bandColor(7)).toBe('yellow')
-  expect(bandColor(9)).toBe('red')
-  expect(bandText(9)).toContain('blocked')
+  expect(statusText(WARN_FROM - 1)).toBeUndefined()
+  expect(statusText(WARN_FROM)).toBe('lecturas sin delegar ▰▰▰▰▰▰▰▱▱▱ 7/10')
+  expect(statusText(THRESHOLD - 1)).toBe('lecturas sin delegar ▰▰▰▰▰▰▰▰▰▱ 9/10')
 })
 
 test('searching shell commands count as a Grep, other shell commands do not', () => {

@@ -76,7 +76,9 @@ function shellTokens(command: string, agentType: string): string[] {
   return visible.split(TOKEN_SEPARATORS).filter(Boolean)
 }
 
-export function denyReason(agentType: string | undefined, call: Call): string | undefined {
+type Violation = { reason: string; target: string }
+
+function violationOf(agentType: string | undefined, call: Call): Violation | undefined {
   const isImpl = isImplementerRole(agentType)
   const isTest = isTestWriterRole(agentType)
   if (!isImpl && !isTest) return undefined
@@ -88,18 +90,35 @@ export function denyReason(agentType: string | undefined, call: Call): string | 
 
   if (isImpl) {
     const hit = candidates.find(isTestPath)
-    return hit && `cleanroom: ${agentType} cannot ${verb} tests (${hit}). Work strictly from the interface contract.`
+    return hit && { target: hit, reason: `cleanroom: ${agentType} cannot ${verb} tests (${hit}). Work strictly from the interface contract.` }
   }
 
   // The test writer may write only test paths, whatever the extension.
   if (WRITE_TOOLS.has(call.tool)) {
     const outside = candidates.find(path => path && !isTestPath(path))
-    return outside && `cleanroom: ${agentType} may only write tests (${outside}).`
+    return outside && { target: outside, reason: `cleanroom: ${agentType} may only write tests (${outside}).` }
   }
   if (isShell && GIT_UNCOMMITTED_READ.test(command)) {
-    return `cleanroom: ${agentType} cannot inspect working tree diffs (exposes implementation). Use \`git show HEAD:<path>\` or the contract.`
+    return {
+      target: 'diff del working tree',
+      reason: `cleanroom: ${agentType} cannot inspect working tree diffs (exposes implementation). Use \`git show HEAD:<path>\` or the contract.`,
+    }
   }
   // Only files are blocked for reads: directory-wide Grep/Glob stay open to locate tests.
   const hit = candidates.find(isProductionSource)
-  return hit && `cleanroom: ${agentType} cannot ${verb} working tree production code (${hit}). Use \`git show HEAD:<path>\` or the contract.`
+  return hit && { target: hit, reason: `cleanroom: ${agentType} cannot ${verb} working tree production code (${hit}). Use \`git show HEAD:<path>\` or the contract.` }
+}
+
+// Deny reason sent to the model (English, with the full path and the way out).
+export function denyReason(agentType: string | undefined, call: Call): string | undefined {
+  return violationOf(agentType, call)?.reason
+}
+
+// Short Spanish one-liner for the user's toast; shows only the basename.
+export function toastText(agentType: string | undefined, call: Call): string | undefined {
+  const violation = violationOf(agentType, call)
+  if (!violation) return undefined
+  const action = WRITE_TOOLS.has(call.tool) ? 'escribir' : 'leer'
+  const name = normalize(violation.target).split('/').filter(Boolean).pop() ?? violation.target
+  return `cleanroom: bloqueé a ${agentType} ${action} ${name}`
 }

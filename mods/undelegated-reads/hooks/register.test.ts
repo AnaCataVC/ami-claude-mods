@@ -1,11 +1,17 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { THRESHOLD } from './meter'
+import { THRESHOLD, WARN_FROM } from './meter'
+
+const statuses: Array<string | undefined> = []
 
 function fakeEngine(on: On, env: Record<string, string> = {}) {
   mock.env(on, env)
-  on('ui.status', async () => ({ value: undefined }) as never)
+  statuses.length = 0
+  on('ui.status', async (_$, e) => {
+    statuses.push((e as unknown as { text?: string }).text)
+    return { value: undefined } as never
+  })
   const store = new Map<string, unknown>()
   let version = 0
   on('state.get', async (_$, e) => ({ value: { value: store.get(e.key), version } }) as never)
@@ -34,6 +40,16 @@ test('counts reads, blocks exactly at the threshold and restarts from 0', async 
   expect(count()).toBe(0)
   expect(isBlocked(await $.tool.call({ tool: 'Glob', pattern: '*' } as never))).toBe(false)
   expect(count()).toBe(1)
+})
+
+test('status stays undefined below WARN_FROM and shows the gauge from WARN_FROM', async ($, on) => {
+  fakeEngine(on)
+  for (let i = 1; i < WARN_FROM; i += 1) {
+    await $.tool.call({ tool: 'Read', file_path: 'a' } as never)
+    expect(statuses[statuses.length - 1]).toBeUndefined()
+  }
+  await $.tool.call({ tool: 'Read', file_path: 'a' } as never)
+  expect(statuses[statuses.length - 1]).toBe(`lecturas sin delegar ▰▰▰▰▰▰▰▱▱▱ ${WARN_FROM}/${THRESHOLD}`)
 })
 
 test('Agent and Task reset the count; other tools do not count', async ($, on) => {

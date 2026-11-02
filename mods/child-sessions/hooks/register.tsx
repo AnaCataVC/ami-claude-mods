@@ -71,8 +71,13 @@ function succeeded(ran: { deny?: unknown; isError?: boolean }): boolean {
 
 function ago(at: number): string {
   const minutes = Math.floor((Date.now() - at) / 60000)
-  return minutes < 1 ? 'just now' : minutes < 60 ? `${minutes}m ago` : `${Math.floor(minutes / 60)}h ago`
+  return minutes < 1 ? 'recién' : minutes < 60 ? `hace ${minutes}m` : `hace ${Math.floor(minutes / 60)}h`
 }
+
+// A bare digit in an empty composer presses a band Button, so digits reach every row
+// without focusing the band; letters only work once ctrl+x tab focuses it, so only
+// the top row gets them to avoid clashes.
+const KEYBOARD_HINT = '1-3 en el prompt vacío responde · ctrl+x tab: v ver, d descartar, tab para moverte'
 
 async function dismiss($: Engine, peer: Peer) {
   await update($, dismissed, map => capDismissed({ ...map, [peer.key]: peer.lastAt }, MAX_PEERS))
@@ -92,7 +97,7 @@ async function reply($: Engine, peer: Peer, surface: RenderSurface) {
     return
   }
   await $.ui.copy({ text, surface })
-  $.ui.toast('Reply instruction copied to clipboard: paste into prompt')
+  $.ui.toast('Instrucción de respuesta copiada al portapapeles: pégala en el prompt')
 }
 
 async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) {
@@ -103,9 +108,10 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
   const extra = waiting.length - BAND_MAX_LINES
   return (
     <Box flexDirection="column">
-      {waiting.slice(0, BAND_MAX_LINES).map(peer => {
+      {waiting.slice(0, BAND_MAX_LINES).map((peer, index) => {
         const full = peer.lastMessageFull ?? peer.lastMessage
         const isOpen = open.has(peer.key) && !!full
+        const isTop = index === 0
         return (
           <Box key={peer.key} flexDirection="column">
             <Box>
@@ -117,17 +123,32 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
                 </Text>
               </Box>
               <Box gap={1} flexShrink={0}>
-                <Button key={`reply:${peer.key}`} label="reply" plain onPress={press => reply($, peer, press.surface)} />
+                <Button
+                  key={`reply:${peer.key}`}
+                  label="responder"
+                  hotkey={String(index + 1)}
+                  plain
+                  {...(isTop ? { autoFocus: true as const } : {})}
+                  onPress={press => reply($, peer, press.surface)}
+                />
                 {full && (
                   <Button
                     key={`view:${peer.key}`}
-                    label={isOpen ? 'hide' : 'view'}
+                    label={isOpen ? 'ocultar' : 'ver'}
+                    {...(isTop ? { hotkey: 'v' } : {})}
                     plain
                     dimColor
                     onPress={() => toggleExpanded($, peer)}
                   />
                 )}
-                <Button key={`done:${peer.key}`} label="dismiss" plain dimColor onPress={() => dismiss($, peer)} />
+                <Button
+                  key={`done:${peer.key}`}
+                  label="descartar"
+                  {...(isTop ? { hotkey: 'd' } : {})}
+                  plain
+                  dimColor
+                  onPress={() => dismiss($, peer)}
+                />
               </Box>
             </Box>
             {isOpen && (
@@ -138,7 +159,8 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
           </Box>
         )
       })}
-      {extra > 0 && <Text dimColor>+{extra} more</Text>}
+      {extra > 0 && <Text dimColor>+{extra} más</Text>}
+      <Text dimColor wrap="truncate-end">{KEYBOARD_HINT}</Text>
     </Box>
   )
 }
