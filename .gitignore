@@ -12,6 +12,11 @@ build/
 **/.claude-plugin/types/claude-code-tools/
 **/.claude-plugin/types/claude-code-mcp/
 
+# Personal mod configuration (accounts, paths); keep it in ~/.claude/, never in git
+context-guard.json
+**/.claude/context-guard.json
+*.local.json
+
 # OS and Editor
 .DS_Store
 Thumbs.db
