@@ -1,6 +1,6 @@
 {
   "name": "undelegated-reads",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Tracks consecutive mechanical file reads and code searches in the main session, displaying a status gauge and enforcing delegation to subagents at the threshold limit",
   "author": { "name": "Catalina Villalobos" },
   "types": "./types/index.d.ts"

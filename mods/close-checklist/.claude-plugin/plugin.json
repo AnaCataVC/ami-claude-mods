@@ -1,6 +1,6 @@
 {
   "name": "close-checklist",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Pre-exit inspection pane and slash command tracking uncommitted Git status, running Docker containers, active background tasks, and leftover scratchpad files",
   "author": { "name": "Catalina Villalobos" },
   "types": "./types/index.d.ts"
