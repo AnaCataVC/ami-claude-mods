@@ -93,6 +93,8 @@ El repositorio incorpora guardas reactivas, monitores en segundo plano y paneles
 | `undelegated-reads` | `tool.call` (`Read`, `Grep`, `Glob`, shell) | Contabiliza lecturas mecánicas consecutivas y activa un interruptor de corte para forzar la delegación a subagentes de fondo. |
 | `cleanroom-guard` | `tool.call` (`Read`, `Write`, `Edit`, shell) | Impone aislamiento Doble Ciego en subagentes TDD, impidiendo que el constructor lea pruebas y que el autor de pruebas lea código de implementación. |
 | `context-guard` | `tool.call` (`kubectl`, `git`), `session.start` | Bloquea llamadas accidentales a `kubectl` sin contexto en clústeres de producción y valida la correspondencia de perfiles en GitHub CLI. |
-| `close-checklist` | `tool.call`, `session.end`, `command.run` | Contabiliza de manera reactiva cambios pendientes en Git, contenedores Docker y worktrees huérfanos al salir o invocar `/checklist`. |
+| `close-checklist` | `tool.call`, `session.end`, `command.run` | Contabiliza de manera reactiva cambios pendientes en Git, contenedores Docker y worktrees huérfanos al salir o invocar `/closing-checklist`. |
+| `orchestrate-plan` | `tool.call`, `command.run`, `ui.render` | Panel en vivo con el avance del `plan.md` de una sesión orquestadora (`/plan-progress`), más la skill que mantiene el plan en el contrato que lee el panel y lanza las sesiones ejecutoras. |
+| `quota-pace` | `session.start`, `session.measure` | Reparte el límite de uso semanal entre días laborales, muestra el progreso diario en la barra de estado y alerta al sobrepasar la cuota del día. |
 | `child-sessions` | `session.receive`, `tool.call`, `ui.render` | Intercepta mensajes entre agentes, destaca preguntas bloqueantes sobre el prompt y facilita respuestas interactivas. |
 | `hooks-viewer` | `session.start`, `command.run`, `ui.render` | Registra el comando `/hooks-panel` y abre un panel lateral de inspección de todos los hooks y plugins activos. |

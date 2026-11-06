@@ -22,7 +22,7 @@
 
 While widely used in terminal sessions via the CLI, `ami-claude-mods` is designed as a first-class companion for **Claude Desktop**—serving as a primary daily-driver environment where side panes (`Pane`), banners (`AbovePrompt`), status gauges, and toast alerts render as native desktop GUI controls.
 
-This repository provides six decoupled, privacy-safe, and self-contained plugins designed to enhance reliability, visibility, and safety without modifying Claude core binaries.
+This repository provides eight decoupled, privacy-safe, and self-contained plugins designed to enhance reliability, visibility, and safety without modifying Claude core binaries.
 
 ---
 
@@ -32,10 +32,12 @@ This repository provides six decoupled, privacy-safe, and self-contained plugins
 | :--- | :--- | :--- | :--- |
 | **[`hooks-viewer`](mods/hooks-viewer)** | `session.start`, `command.run`, `ui.render` | Side Pane (`Pane`) | Interactive inspector panel and `/hooks-panel` command listing all configured hooks and active plugins across settings layers. |
 | **[`undelegated-reads`](mods/undelegated-reads)** | `tool.call`, `prompt.submit`, `ui.render` | Status Bar & `AbovePrompt` | Real-time gauge and circuit breaker that counts mechanical searches and enforces subagent exploration delegation. |
-| **[`close-checklist`](mods/close-checklist)** | `tool.call`, `session.end`, `command.run` | Side Pane & Toast | Pre-exit safety inspector tracking uncommitted Git status, active Docker containers/volumes, and lingering tasks via `/checklist`. |
+| **[`close-checklist`](mods/close-checklist)** | `tool.call`, `session.end`, `command.run` | Side Pane & Toast | Pre-exit safety inspector tracking uncommitted Git status, active Docker containers/volumes, and lingering tasks via `/closing-checklist`. |
 | **[`child-sessions`](mods/child-sessions)** | `session.receive`, `tool.call`, `ui.render` | Above Prompt Banner | Inter-agent messaging inbox that prioritizes blocking questions and provides quick action buttons to reply, view, or dismiss. |
 | **[`cleanroom-guard`](mods/cleanroom-guard)** | `tool.call` | Toast & Circuit Breaker | Strict Double-Blind Cleanroom isolation for TDD subagents, preventing test data leakage and confirmation bias. |
 | **[`context-guard`](mods/context-guard)** | `tool.call`, `session.start`, `ui.render` | Status Bar & `AbovePrompt` | Multi-profile guard that aligns active GitHub CLI accounts with target workspaces and forbids bare `kubectl` on production clusters. |
+| **[`orchestrate-plan`](mods/orchestrate-plan)** | `tool.call`, `command.run`, `ui.render` | Side Pane, Status Bar & Toast | Live progress pane for an orchestrator's `plan.md` (`/plan-progress`), plus the skill that keeps the plan in the contract the pane reads and launches executor sessions. |
+| **[`quota-pace`](mods/quota-pace)** | `session.start`, `session.measure` | Status Bar & Toast | Paces the weekly usage limit across your workdays (20% per day on Mon–Fri by default) and warns once a day when usage passes today's target. |
 
 ---
 
@@ -59,15 +61,18 @@ flowchart TD
         CS["child-sessions"]
         CG["cleanroom-guard"]
         CXG["context-guard"]
+        OP["orchestrate-plan"]
+        QP["quota-pace"]
     end
 
-    Bus -->|"session.start / session.end"| HV & CC & CXG
-    Bus -->|"tool.call interception"| UR & CC & CS & CG & CXG
+    Bus -->|"session.start / session.end"| HV & CC & CXG & QP
+    Bus -->|"tool.call interception"| UR & CC & CS & CG & CXG & OP
     Bus -->|"session.receive"| CS
-    Bus -->|"command.run (/checklist, /hooks-panel)"| HV & CC
+    Bus -->|"session.measure"| QP
+    Bus -->|"command.run (/closing-checklist, /hooks-panel, /plan-progress)"| HV & CC & OP
 
-    HV & UR & CC & CS & CXG -->|"$.state.set / $.state.get"| State
-    HV & UR & CC & CS & CXG -->|"$.ui.resolve (Box, Text, Button)"| UI
+    HV & UR & CC & CS & CXG & OP & QP -->|"$.state.set / $.state.get"| State
+    HV & UR & CC & CS & CXG & OP & QP -->|"$.ui.resolve (Box, Text, Button)"| UI
 ```
 
 ### Component Responsibility Matrix
@@ -80,6 +85,8 @@ flowchart TD
 | `child-sessions` | `session.receive`, `tool.call` (`SendMessage`) | Preserves envelope headers; drops unaddressable message targets. |
 | `cleanroom-guard` | `tool.call` (`Read`, `Write`, `Edit`, `Bash`, `PowerShell`) | Subagents restricted to contractual boundaries; main loop unaffected. |
 | `context-guard` | `tool.call` (`kubectl`, `git`), `session.start` | Prevents cluster-wide mutations by requiring explicit `--context`. |
+| `orchestrate-plan` | `tool.call`, `command.run`, `ui.render` | Reconciles `plan.md` tasks against live sessions and merged PRs without mutating the file. |
+| `quota-pace` | `session.start`, `session.measure` | Calculates workday pacing against the 7-day rate limit window without network calls. |
 
 ---
 
@@ -113,13 +120,13 @@ Claude Desktop loads plugins declaratively from your global configuration file:
    ```bash
    npm run install-mods
    ```
-   This copies all six mods into `~/.claude/mods/`.
+   This copies all eight mods into `~/.claude/mods/`.
 
 2. **Configure persistence in `~/.claude/settings.json`:**
    Add the `CLAUDE_CODE_PLUGIN_DIRS` setting to your global settings:
    ```json
    {
-     "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/child-sessions:~/.claude/mods/cleanroom-guard:~/.claude/mods/close-checklist:~/.claude/mods/context-guard:~/.claude/mods/hooks-viewer:~/.claude/mods/undelegated-reads"
+     "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/child-sessions:~/.claude/mods/cleanroom-guard:~/.claude/mods/close-checklist:~/.claude/mods/context-guard:~/.claude/mods/hooks-viewer:~/.claude/mods/orchestrate-plan:~/.claude/mods/quota-pace:~/.claude/mods/undelegated-reads"
    }
    ```
    *(On Windows, use semicolons `;` as the path delimiter, e.g. `C:/path/to/.claude/mods/...`)*.
@@ -152,12 +159,29 @@ claude --plugin-dir mods/hooks-viewer --plugin-dir mods/undelegated-reads
    claude --plugin-dir ~/.claude/mods/hooks-viewer
    ```
 
+### Display Language
+
+Every mod shows its panes, toasts, status lines and command descriptions in English by default. To switch them to Spanish, set `CLAUDE_MODS_LANG` in the `env` block of your Claude Code `settings.json`:
+
+```json
+{
+  "env": {
+    "CLAUDE_MODS_LANG": "es"
+  }
+}
+```
+
+Only the exact value `es` (case and surrounding spaces ignored) selects Spanish; anything else, including an unset variable, falls back to English. The setting is read when a session starts. It does not change:
+
+- slash command names (`/closing-checklist`, `/hooks-panel`, `/plan-progress`);
+- text addressed to the model, such as block reasons;
+- the keywords `orchestrate-plan` parses from `plan.md` (`Estado`, `pendiente`, `hecho`...). In English the pane translates the status words it displays, but the file keeps the Spanish keywords.
 ### Verifying Loaded Mods
 
 Once Claude Desktop or Claude Code starts, confirm that your mods are active:
 
 1. Run `/hooks-panel` to open the interactive **`hooks-viewer`** side pane listing all active plugins, hooks, and settings layers.
-2. Run `/checklist` to trigger **`close-checklist`** and inspect uncommitted Git changes, Docker containers, and background tasks before finishing your work.
+2. Run `/closing-checklist` to trigger **`close-checklist`** and inspect uncommitted Git changes, Docker containers, and background tasks before finishing your work.
 3. Check status indicators: **`undelegated-reads`** and **`context-guard`** display real-time read gauges and active environment profiles.
 
 ### Validating Mods

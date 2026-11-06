@@ -93,6 +93,8 @@ The repository provides automated runtime guards, background monitors, and react
 | `undelegated-reads` | `tool.call` (`Read`, `Grep`, `Glob`, shell) | Counts consecutive mechanical file inspections and triggers circuit breaker to delegate exploration to background subagents. |
 | `cleanroom-guard` | `tool.call` (`Read`, `Write`, `Edit`, shell) | Enforces double-blind isolation for TDD subagents, blocking builders from reading tests and testers from reading implementation diffs. |
 | `context-guard` | `tool.call` (`kubectl`, `git`), `session.start` | Blocks accidental bare `kubectl` mutations on production Kubernetes clusters and verifies GitHub CLI account alignment. |
-| `close-checklist` | `tool.call`, `session.end`, `command.run` | Automatically tallies uncommitted Git modifications, running Docker containers, and dangling worktrees upon exit or `/checklist`. |
+| `close-checklist` | `tool.call`, `session.end`, `command.run` | Automatically tallies uncommitted Git modifications, running Docker containers, and dangling worktrees upon exit or `/closing-checklist`. |
+| `orchestrate-plan` | `tool.call`, `command.run`, `ui.render` | Live progress pane for an orchestrator's `plan.md` (`/plan-progress`), plus the skill that keeps the plan in the contract the pane reads and launches executor sessions. |
+| `quota-pace` | `session.start`, `session.measure` | Paces the weekly usage limit across workdays, displays target progress in the status line, and warns when daily quota is exceeded. |
 | `child-sessions` | `session.receive`, `tool.call`, `ui.render` | Intercepts cross-agent messages, surfaces urgent questions above the prompt, and handles reactive replies. |
 | `hooks-viewer` | `session.start`, `command.run`, `ui.render` | Automatically registers the `/hooks-panel` command and opens a side pane inspecting loaded hooks and plugin layers. |

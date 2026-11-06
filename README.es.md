@@ -22,7 +22,7 @@
 
 Aunque se utilizan ampliamente en sesiones de terminal mediante la CLI, `ami-claude-mods` está diseñado como un complemento de primera clase para **Claude Desktop**—sirviendo como entorno de uso diario principal donde los paneles laterales (`Pane`), banners (`AbovePrompt`), medidores de estado y notificaciones toast se integran como controles nativos de la interfaz gráfica.
 
-Este repositorio proporciona seis plugins desacoplados, seguros para la privacidad y autocontenidos, orientados a maximizar la confiabilidad, visibilidad y seguridad sin necesidad de modificar los binarios base de Claude.
+Este repositorio proporciona ocho plugins desacoplados, seguros para la privacidad y autocontenidos, orientados a maximizar la confiabilidad, visibilidad y seguridad sin necesidad de modificar los binarios base de Claude.
 
 ---
 
@@ -32,10 +32,12 @@ Este repositorio proporciona seis plugins desacoplados, seguros para la privacid
 | :--- | :--- | :--- | :--- |
 | **[`hooks-viewer`](mods/hooks-viewer)** | `session.start`, `command.run`, `ui.render` | Panel Lateral (`Pane`) | Panel interactivo de inspección y comando `/hooks-panel` que lista todos los hooks configurados y mods cargados a través de las distintas capas de ajustes. |
 | **[`undelegated-reads`](mods/undelegated-reads)** | `tool.call`, `prompt.submit`, `ui.render` | Barra de Estado y `AbovePrompt` | Indicador visual en tiempo real e interruptor de seguridad que contabiliza lecturas mecánicas consecutivas y fuerza la delegación en subagentes exploradores. |
-| **[`close-checklist`](mods/close-checklist)** | `tool.call`, `session.end`, `command.run` | Panel Lateral y Toast | Inspector de seguridad previo a la salida que rastrea cambios pendientes en Git, contenedores/volúmenes Docker activos y procesos huérfanos mediante `/checklist` (o `/cierre`). |
+| **[`close-checklist`](mods/close-checklist)** | `tool.call`, `session.end`, `command.run` | Panel Lateral y Toast | Inspector de seguridad previo a la salida que rastrea cambios pendientes en Git, contenedores/volúmenes Docker activos y procesos huérfanos mediante `/closing-checklist`. |
 | **[`child-sessions`](mods/child-sessions)** | `session.receive`, `tool.call`, `ui.render` | Banda sobre el Prompt | Bandeja de mensajería entre agentes y sesiones que prioriza preguntas bloqueantes y ofrece botones de acción rápida para responder, visualizar o descartar. |
 | **[`cleanroom-guard`](mods/cleanroom-guard)** | `tool.call` | Notificación Toast e Interceptor | Aislamiento estricto Cleanroom Doble Ciego para subagentes en flujos TDD, evitando la fuga de información de pruebas y el sesgo de confirmación. |
 | **[`context-guard`](mods/context-guard)** | `tool.call`, `session.start`, `ui.render` | Barra de Estado y `AbovePrompt` | Guarda de seguridad multientorno que alinea la cuenta activa en GitHub CLI con el directorio de trabajo y bloquea comandos `kubectl` sin contexto en clústeres productivos. |
+| **[`orchestrate-plan`](mods/orchestrate-plan)** | `tool.call`, `command.run`, `ui.render` | Panel Lateral, Barra de Estado y Toast | Panel en vivo con el avance del `plan.md` de una sesión orquestadora (`/plan-progress`), más la skill que mantiene el plan en el contrato que lee el panel y lanza las sesiones ejecutoras. |
+| **[`quota-pace`](mods/quota-pace)** | `session.start`, `session.measure` | Barra de estado y Toast | Reparte el límite semanal de uso entre tus días laborales (20% por día de lunes a viernes por defecto) y avisa una vez al día cuando pasas la meta de hoy. |
 
 ---
 
@@ -59,15 +61,18 @@ flowchart TD
         CS["child-sessions"]
         CG["cleanroom-guard"]
         CXG["context-guard"]
+        OP["orchestrate-plan"]
+        QP["quota-pace"]
     end
 
-    Bus -->|"session.start / session.end"| HV & CC & CXG
-    Bus -->|"intercepción tool.call"| UR & CC & CS & CG & CXG
+    Bus -->|"session.start / session.end"| HV & CC & CXG & QP
+    Bus -->|"intercepción tool.call"| UR & CC & CS & CG & CXG & OP
     Bus -->|"session.receive"| CS
-    Bus -->|"command.run (/checklist, /hooks-panel)"| HV & CC
+    Bus -->|"session.measure"| QP
+    Bus -->|"command.run (/closing-checklist, /hooks-panel, /plan-progress)"| HV & CC & OP
 
-    HV & UR & CC & CS & CXG -->|"$.state.set / $.state.get"| State
-    HV & UR & CC & CS & CXG -->|"$.ui.resolve (Box, Text, Button)"| UI
+    HV & UR & CC & CS & CXG & OP & QP -->|"$.state.set / $.state.get"| State
+    HV & UR & CC & CS & CXG & OP & QP -->|"$.ui.resolve (Box, Text, Button)"| UI
 ```
 
 ### Matriz de Responsabilidades
@@ -80,6 +85,8 @@ flowchart TD
 | `child-sessions` | `session.receive`, `tool.call` (`SendMessage`) | Preserva encabezados de sobre; descarta destinatarios inalcanzables. |
 | `cleanroom-guard` | `tool.call` (`Read`, `Write`, `Edit`, `Bash`, `PowerShell`) | Subagentes restringidos a su contrato; bucle principal inalterado. |
 | `context-guard` | `tool.call` (`kubectl`, `git`), `session.start` | Previene mutaciones globales exigiendo el parámetro `--context`. |
+| `orchestrate-plan` | `tool.call`, `command.run`, `ui.render` | Concilia las tareas de `plan.md` con sesiones activas y PRs fusionados sin mutar el archivo. |
+| `quota-pace` | `session.start`, `session.measure` | Modela el ritmo de uso laboral contra la ventana de 7 días sin realizar peticiones de red. |
 
 ---
 
@@ -113,13 +120,13 @@ Claude Desktop carga plugins declarativamente desde tu archivo de configuración
    ```bash
    npm run install-mods
    ```
-   Esto copiará los seis mods a `~/.claude/mods/`.
+   Esto copiará los ocho mods a `~/.claude/mods/`.
 
 2. **Configurar la persistencia en `~/.claude/settings.json`:**
    Añade la clave `CLAUDE_CODE_PLUGIN_DIRS` a tu archivo global de configuración:
    ```json
    {
-     "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/child-sessions:~/.claude/mods/cleanroom-guard:~/.claude/mods/close-checklist:~/.claude/mods/context-guard:~/.claude/mods/hooks-viewer:~/.claude/mods/undelegated-reads"
+     "CLAUDE_CODE_PLUGIN_DIRS": "~/.claude/mods/child-sessions:~/.claude/mods/cleanroom-guard:~/.claude/mods/close-checklist:~/.claude/mods/context-guard:~/.claude/mods/hooks-viewer:~/.claude/mods/orchestrate-plan:~/.claude/mods/quota-pace:~/.claude/mods/undelegated-reads"
    }
    ```
    *(En Windows, utiliza punto y coma `;` como separador de rutas, ej. `C:/ruta/a/.claude/mods/...`)*.
@@ -152,12 +159,29 @@ claude --plugin-dir mods/hooks-viewer --plugin-dir mods/undelegated-reads
    claude --plugin-dir ~/.claude/mods/hooks-viewer
    ```
 
+### Idioma de los Mods
+
+Todos los mods muestran sus paneles, toasts, líneas de estado y descripciones de comandos en inglés por defecto. Para mostrarlos en español, define `CLAUDE_MODS_LANG` en el bloque `env` del `settings.json` de Claude Code:
+
+```json
+{
+  "env": {
+    "CLAUDE_MODS_LANG": "es"
+  }
+}
+```
+
+Solo el valor exacto `es` (sin importar mayúsculas ni espacios alrededor) activa el español; cualquier otro valor, o la variable sin definir, usa inglés. El valor se lee al iniciar la sesión. No cambia:
+
+- los nombres de los comandos (`/closing-checklist`, `/hooks-panel`, `/plan-progress`);
+- los textos dirigidos al modelo, como los motivos de bloqueo;
+- las palabras que `orchestrate-plan` lee del `plan.md` (`Estado`, `pendiente`, `hecho`...). En inglés el panel traduce los estados que muestra, pero en el archivo se siguen escribiendo en español.
 ### Verificación de Mods Cargados
 
 Una vez iniciado Claude Desktop o Claude Code, confirma que los mods están operando:
 
 1. Ejecuta `/hooks-panel` para abrir el panel lateral interactivo de **`hooks-viewer`** con la lista de plugins, hooks y capas de configuración activas.
-2. Ejecuta `/checklist` para activar **`close-checklist`** e inspeccionar cambios pendientes de Git, contenedores Docker y tareas en segundo plano antes de cerrar tu jornada.
+2. Ejecuta `/closing-checklist` para activar **`close-checklist`** e inspeccionar cambios pendientes de Git, contenedores Docker y tareas en segundo plano antes de cerrar tu jornada.
 3. Observa los indicadores de estado: **`undelegated-reads`** y **`context-guard`** mostrarán en tiempo real el medidor de lecturas y el perfil de entorno activo.
 
 ### Validación de Mods
