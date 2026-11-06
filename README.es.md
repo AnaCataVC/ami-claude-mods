@@ -218,7 +218,7 @@ npm run prepare
 > [!NOTE]
 > La verificación se declara exitosa cuando el conjunto completo de pruebas automatizadas finaliza con un 100% de éxito y cero regresiones.
 
-Para consultar el desglose completo de pipelines CI/CD, publicación de releases y hooks de Git, revisa [docs/automations.es.md](docs/automations.es.md).
+Para consultar el desglose completo de pipelines CI/CD, publicación de releases y hooks de Git, revisa [docs/automations.es.md](docs/automations.es.md). Para conocer las puertas de calidad y especificaciones de congelación contractual hacia la versión 1.0 de Disponibilidad General, consulta [docs/v1-milestone-criteria.md](docs/v1-milestone-criteria.md).
 
 ---
 

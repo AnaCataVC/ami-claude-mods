@@ -90,4 +90,5 @@ En el desarrollo guiado por pruebas (TDD), el aislamiento de información entre 
 
 - **Automatizaciones y Pipelines de CI/CD:** Consulta la [Referencia de Automatizaciones y Flujos de Trabajo](automations.es.md) para detalles sobre hooks pre-push, pruebas en matriz multi-SO y empaquetado de releases.
 - **Invariantes y Aprendizajes Arquitectónicos:** Consulta [Aprendizajes Clave e Invariantes Arquitectónicos](learning/README.es.md) para guías individuales de patrones, restricciones del motor y lecciones de runtime.
+- **Criterios para el Hito v1.0:** Consulta [Criterios para el Hito de Versión 1.0](v1-milestone-criteria.md) para requisitos, congelación de contratos y puertas de calidad hacia la Disponibilidad General.
 
