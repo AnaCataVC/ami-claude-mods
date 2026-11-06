@@ -145,7 +145,7 @@ claude --plugin-dir mods/hooks-viewer --plugin-dir mods/undelegated-reads
 
 #### Método 4: Descarga Directa desde GitHub Releases (Sin Requerir Node.js)
 
-1. Descarga el paquete comprimido desde [GitHub Releases](https://github.com/AnaCataVC/ami-claude-mods/releases) (ej. `ami-claude-mods-all-v1.0.0.zip` o archivos individuales por mod).
+1. Descarga el paquete comprimido desde [GitHub Releases](https://github.com/AnaCataVC/ami-claude-mods/releases) (ej. `ami-claude-mods-all-vX.Y.Z.zip` o archivos individuales por mod).
 2. Descomprime el contenido en la carpeta que prefieras (ej. `~/.claude/mods/`).
 3. Agrega la ruta a `~/.claude/settings.json` (para Desktop y CLI) o inicia Claude Code con `--plugin-dir`:
    ```bash
