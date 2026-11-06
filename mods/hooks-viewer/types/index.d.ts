@@ -3,6 +3,6 @@ export type ModRow = { name: string; version: string; description: string }
 
 declare module 'claude-code' {
   interface PluginState {
-    'hooks-viewer': { rows: Shaped<HookRow[]>; mods: Shaped<ModRow[]> }
+    'hooks-viewer': { lang: 'en' | 'es'; rows: Shaped<HookRow[]>; mods: Shaped<ModRow[]> }
   }
 }

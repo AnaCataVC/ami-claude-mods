@@ -19,6 +19,7 @@ export type Snapshot = {
 declare module 'claude-code' {
   interface PluginState {
     'context-guard': {
+      lang: 'en' | 'es'
       config: ContextGuardConfig | null
     }
   }

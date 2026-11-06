@@ -1,12 +1,23 @@
 import type { On } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
+
+import { messages } from './messages'
 
 import type { Tracked } from '../types'
 
 const CWD = 'C:\\proj'
 
-function fakeEngine(on: On, processAnswer: (argv: readonly string[]) => { exitCode: number; stdout: string }) {
+function fakeEngine(on: On, processAnswer: (argv: readonly string[]) => { exitCode: number; stdout: string }, lang?: string | 'reject') {
+  if (lang === 'reject') {
+    on('env.get', async (_$, e) => {
+      if ((e as unknown as { name: string }).name === 'CLAUDE_MODS_LANG') throw new Error('env unavailable')
+      return { value: undefined } as never
+    })
+  } else {
+    mock.env(on, lang === undefined ? {} : { CLAUDE_MODS_LANG: lang })
+  }
   const registered: string[] = []
+  const commands: CommandEvent[] = []
   const store = new Map<string, unknown>()
   const toasts: string[] = []
   const processes: string[] = []
@@ -20,10 +31,10 @@ function fakeEngine(on: On, processAnswer: (argv: readonly string[]) => { exitCo
   })
   on('session.cwd', async () => ({ value: CWD }) as never)
   on('session.id', async () => ({ value: 'sid' }) as never)
-  on('env.get', async () => ({ value: undefined }) as never)
   on('fs.exists', async () => ({ value: false }) as never)
   on('command.register', async (_$, e) => {
     registered.push((e as unknown as { name: string }).name)
+    commands.push(e as unknown as CommandEvent)
     return { value: { isRegistered: true } } as never
   })
   on('session.start', async (_$, e) => ({ cwd: e.cwd }) as never)
@@ -40,6 +51,7 @@ function fakeEngine(on: On, processAnswer: (argv: readonly string[]) => { exitCo
   on('tool.call', async () => toolAnswer as never)
   return {
     registered,
+    commands,
     toasts,
     processes,
     tracked: () => store.get('tracked') as Tracked | undefined,
@@ -54,13 +66,41 @@ const cleanGit = (argv: readonly string[]) =>
 const dirtyGit = (argv: readonly string[]) =>
   argv[0] === 'git' ? { exitCode: 0, stdout: '## main...origin/main [ahead 2]\n M a\n' } : { exitCode: 1, stdout: '' }
 
-test('session.start registers only the /cierre command and opens the pane', async ($, on) => {
-  const engine = fakeEngine(on, cleanGit)
-  await $.session.start({ source: 'startup', cwd: CWD } as never)
-  expect(engine.registered).toContain('cierre')
-  expect(engine.registered).not.toContain('checklist')
-  const reply = await $.command.run({ command: 'cierre' } as never)
+type CommandEvent = { name: string; description?: string; argumentHint?: string }
+
+const START = { source: 'startup', cwd: CWD } as never
+
+for (const lang of ['es', undefined]) {
+  test(`session.start registers closing-checklist (never checklist or cierre), opens the pane and handles closing-checklist; lang ${lang ?? 'unset'}`, async ($, on) => {
+    const engine = fakeEngine(on, cleanGit, lang)
+    await $.session.start(START)
+    expect(engine.registered).toContain('closing-checklist')
+    expect(engine.registered).not.toContain('cierre')
+    expect(engine.registered).not.toContain('checklist')
+    const reply = await $.command.run({ command: 'closing-checklist' } as never)
+    expect(reply.text).toBeDefined()
+    expect(reply.text).not.toContain('/cierre')
+  })
+}
+
+test('es: the command reply is the Spanish text', async ($, on) => {
+  fakeEngine(on, cleanGit, 'es')
+  await $.session.start(START)
+  const reply = await $.command.run({ command: 'closing-checklist' } as never)
   expect(reply.text).toBe('Panel de checklist abierto.')
+})
+
+test('en: the command reply is not the Spanish text', async ($, on) => {
+  fakeEngine(on, cleanGit)
+  await $.session.start(START)
+  const reply = await $.command.run({ command: 'closing-checklist' } as never)
+  expect(reply.text).not.toBe('Panel de checklist abierto.')
+})
+
+test('the old cierre command is no longer handled', async ($, on) => {
+  const engine = fakeEngine(on, cleanGit, 'es')
+  await $.session.start(START)
+  expect(engine.registered).not.toContain('cierre')
 })
 
 test('a Bash call that ran is tracked; a denied or failed one is not', async ($, on) => {
@@ -88,11 +128,47 @@ test('a Write outside the project is tracked after it succeeded', async ($, on) 
   expect(engine.tracked()?.files).toEqual(['C:/other/a.txt'])
 })
 
-test('session.end toasts the pending count and costs one git process when dirty', async ($, on) => {
-  const engine = fakeEngine(on, dirtyGit)
+test('es: session.end toasts the pending count pointing to /closing-checklist and costs one git process when dirty', async ($, on) => {
+  const engine = fakeEngine(on, dirtyGit, ' ES ')
+  await $.session.start(START)
   await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sid', resume: {} } as never)
-  expect(engine.toasts).toEqual(['Antes de cerrar: 2 ítems pendientes, revisa /cierre'])
+  expect(engine.toasts).toEqual(['2 pendientes · revisa /closing-checklist'])
   expect(engine.processes).toEqual(['git status --porcelain=v1 --branch'])
+})
+
+test('en: session.end toasts the pending count and /closing-checklist, not the Spanish text', async ($, on) => {
+  const engine = fakeEngine(on, dirtyGit)
+  await $.session.start(START)
+  await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sid', resume: {} } as never)
+  expect(engine.toasts.length).toBe(1)
+  expect(engine.toasts[0]).toContain('2')
+  expect(engine.toasts[0]).toContain('/closing-checklist')
+  expect(engine.toasts[0]).not.toContain('/cierre')
+  expect(engine.toasts[0]).not.toContain('pendiente')
+})
+
+test('es: a single pending item uses the singular wording', async ($, on) => {
+  const engine = fakeEngine(on, (argv: readonly string[]) =>
+    argv[0] === 'git' ? { exitCode: 0, stdout: '## main...origin/main [ahead 1]\n' } : { exitCode: 1, stdout: '' }, 'es')
+  await $.session.start(START)
+  await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sid', resume: {} } as never)
+  expect(engine.toasts).toEqual(['1 pendiente · revisa /closing-checklist'])
+})
+
+test('a value other than es (es-CL) toasts in English', async ($, on) => {
+  const engine = fakeEngine(on, dirtyGit, 'es-CL')
+  await $.session.start(START)
+  await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sid', resume: {} } as never)
+  expect(engine.toasts[0]).not.toContain('pendiente')
+})
+
+test('a rejecting env.get leaves the mod working in English', async ($, on) => {
+  const engine = fakeEngine(on, dirtyGit, 'reject')
+  await $.session.start(START)
+  expect(engine.registered).toContain('closing-checklist')
+  await $.session.end({ reason: 'prompt_input_exit', sessionId: 'sid', resume: {} } as never)
+  expect(engine.toasts.length).toBe(1)
+  expect(engine.toasts[0]).not.toContain('pendiente')
 })
 
 test('session.end stays silent when everything is clean, and runs nothing after /clear', async ($, on) => {
@@ -117,3 +193,36 @@ test('the pane draws a refresh button armed on the r hotkey', async ($, on) => {
   walk(tree)
   expect(buttons.map(button => button.props.hotkey)).toEqual(['r'])
 })
+
+// Texts of a freshly rendered pane, which has no data yet.
+async function emptyPaneText($: Parameters<Parameters<typeof test>[1]>[0], on: On, lang?: string) {
+  fakeEngine(on, cleanGit, lang)
+  await $.session.start(START)
+  const tree = await $.ui.render({ surface: 'terminal', component: 'Pane', requestId: 'close-checklist', props: {} } as never)
+  return JSON.stringify(tree)
+}
+
+test('es: the empty pane prompts in Spanish', async ($, on) => {
+  expect(await emptyPaneText($, on, 'es')).toContain('Sin datos. Presiona r para actualizar.')
+})
+
+test('en: the empty pane prompts in English, not Spanish', async ($, on) => {
+  const text = await emptyPaneText($, on)
+  expect(text).not.toContain('Sin datos')
+  expect(text).toContain('"r"')
+})
+
+// The description and hint of the registered command, checked against the language table without naming its keys.
+const table = (lang: 'en' | 'es') => Object.values(messages[lang]) as unknown[]
+
+for (const [lang, other] of [['es', 'en'], ['en', 'es']] as const) {
+  test(`${lang}: the closing-checklist command keeps its name while description and hint are the ${lang} texts`, async ($, on) => {
+    const engine = fakeEngine(on, cleanGit, lang === 'es' ? 'es' : undefined)
+    await $.session.start(START)
+    const [command] = engine.commands.filter(registered => registered.name === 'closing-checklist')
+    expect(command).toBeDefined()
+    expect(table(lang)).toContain(command!.description)
+    expect(table(other)).not.toContain(command!.description)
+    if (command!.argumentHint !== undefined) expect(table(other)).not.toContain(command!.argumentHint)
+  })
+}

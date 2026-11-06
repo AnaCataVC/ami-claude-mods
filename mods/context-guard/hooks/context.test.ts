@@ -59,21 +59,35 @@ test('detects context and credential change commands for reactive refresh', () =
   expect(isContextCommand('git status')).toBe(false)
 })
 
-test('statusText formats account and kubernetes status clearly', () => {
-  const snap = { gh: 'work-dev', kube: 'staging-ctx' }
-  expect(statusText(snap, 'C:\\work\\projects\\app', { profiles: PROFILES })).toBe('GitHub: Work ✓ · kubectl: staging-ctx')
+const STATUS_CONFIG = { profiles: [{ path: 'C:/work/projects', expectedGhUser: 'work-dev', label: 'Work', disallowCommits: true }] }
+const MISMATCH = { gh: 'other-user', kube: 'prod-cluster' }
+
+const NO_SNAPSHOT = { gh: undefined, kube: undefined } as never
+
+test('statusText: mismatch and production alerts take priority and fit the row', () => {
+  const text = statusText(MISMATCH, 'C:/work/projects/app', STATUS_CONFIG, 'es')
+  expect(text).toBe('✕ other-user · ⚠ prod-cluster')
+  expect(text.length).toBeLessThanOrEqual(32)
+  expect(statusText(NO_SNAPSHOT, 'C:/elsewhere', undefined, 'es')).toBe('Sin cuenta GitHub')
 })
 
-test('statusText flags account mismatch and production kubernetes cluster', () => {
-  const snap = { gh: 'other-user', kube: 'prod-cluster' }
-  expect(statusText(snap, 'C:\\work\\projects\\app', { profiles: PROFILES })).toBe(
-    'GitHub: other-user ✗ no coincide · kubectl: prod-cluster ⚠ prod',
-  )
+test('statusText: matched account shows its label with a check, plain kube context follows', () => {
+  const config = { profiles: [{ path: 'C:/work/projects', expectedGhUser: 'work-dev', label: 'Work' }] }
+  expect(statusText({ gh: 'work-dev', kube: 'staging' }, 'C:/work/projects/app', config)).toBe('✓ Work · staging')
 })
 
-test('statusText omits the production flag when warnProductionKube is disabled', () => {
-  const snap = { gh: 'work-dev', kube: 'prod-cluster' }
-  expect(statusText(snap, 'C:\\work\\projects\\app', { profiles: PROFILES, warnProductionKube: false })).toBe(
-    'GitHub: Work ✓ · kubectl: prod-cluster',
-  )
+test('statusText: drops the least important part, then truncates, to stay within 32 characters', () => {
+  const long = { gh: 'other-user', kube: 'gke_proj_us_very-long-production-cluster-name' }
+  const text = statusText(long, 'C:/work/projects/app', STATUS_CONFIG)
+  expect(text.length).toBeLessThanOrEqual(32)
+  expect(text.startsWith('✕ other-user')).toBe(true)
+})
+
+test('statusText en is the default and carries no Spanish wording', () => {
+  const noCommits = { gh: 'work-dev', kube: undefined } as never
+  const text = statusText(noCommits, 'C:/work/projects/app', STATUS_CONFIG, 'en')
+  expect(text).toBe('✓ Work · no direct commits')
+  expect(statusText(noCommits, 'C:/work/projects/app', STATUS_CONFIG)).toBe(text)
+  expect(statusText(noCommits, 'C:/work/projects/app', STATUS_CONFIG, 'es')).toBe('✓ Work · sin commits directos')
+  expect(statusText(NO_SNAPSHOT, 'C:/elsewhere', undefined, 'en')).toBe('No GitHub account')
 })

@@ -19,6 +19,7 @@ export type Peer = {
 declare module 'claude-code' {
   interface PluginState {
     'child-sessions': {
+      lang: 'en' | 'es'
       peers: Peer[]
       subagentNames: string[]
       // Peer key -> lastAt of the inbound message dismissed from the question band.

@@ -3,9 +3,12 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { ContextGuardConfig, Snapshot } from '../types'
 import { denyCommand } from './commands'
+import { langFrom } from './messages'
+import type { Lang } from './messages'
 import { MIN_GAP_MS, isContextCommand, parseGhAccount, parseKubeContext, statusText } from './context'
 
 const configAtom = atom({ plugin: 'context-guard', key: 'config' } as const, null as ContextGuardConfig | null)
+const langAtom = atom({ plugin: 'context-guard', key: 'lang' } as const, 'en' as Lang)
 
 type Engine = EngineInterface
 
@@ -55,6 +58,17 @@ async function readSnapshot($: Engine): Promise<Snapshot> {
   }
 }
 
+// A failing env read must not break the mod: it falls back to English.
+async function loadLang($: Engine): Promise<void> {
+  let raw: string | undefined
+  try {
+    raw = (await $.env.get('CLAUDE_MODS_LANG')) as string | undefined
+  } catch {
+    // Falls back to English
+  }
+  await update($, langAtom, () => langFrom(raw))
+}
+
 let lastRunAt = 0
 let inFlight: Promise<void> | null = null
 
@@ -62,7 +76,7 @@ async function readAndPublish($: Engine): Promise<void> {
   try {
     const [next, config] = await Promise.all([readSnapshot($), loadConfig($)])
     await update($, configAtom, () => config)
-    $.ui.status(statusText(next, await $.session.cwd(), config))
+    $.ui.status(statusText(next, await $.session.cwd(), config, await read($, langAtom)))
   } finally {
     lastRunAt = await $.clock.now()
     inFlight = null
@@ -78,6 +92,7 @@ async function refresh($: Engine, force: boolean): Promise<void> {
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
+    await loadLang($)
     await refresh($, true).catch(() => undefined)
     return next(e)
   })

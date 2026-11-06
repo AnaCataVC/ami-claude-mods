@@ -1,4 +1,6 @@
 import type { HookRow, ModRow } from '../types'
+import { t } from './messages'
+import type { Lang } from './messages'
 
 type HookEntry = { type?: string; command?: string; args?: string[]; timeout?: number }
 type HookGroup = { matcher?: string; hooks?: HookEntry[] }
@@ -81,16 +83,17 @@ export function parseMod(manifest: string): ModRow | undefined {
 }
 
 // The same listing as the pane, as plain text for the command's reply, which shows on every surface.
-export function reportText(hooks: HookRow[], mods: ModRow[]): string {
-  const lines = [`Hooks de settings (${hooks.length})`]
+export function reportText(hooks: HookRow[], mods: ModRow[], lang: Lang = 'en'): string {
+  const text = t(lang)
+  const lines = [text.settingsHooks(hooks.length)]
   for (const event of [...new Set(hooks.map(row => row.event))]) {
     lines.push(`  ${event}`)
     for (const row of hooks.filter(one => one.event === event)) {
       const timeout = row.timeout ? ` (${row.timeout}s)` : ''
-      lines.push(`    [${row.matcher}] ${shortCommand(row.command)}${timeout}  ${row.source}`)
+      lines.push(`    [${row.matcher}] ${shortCommand(row.command)}${timeout}  ${sourceLabel(row.source, lang)}`)
     }
   }
-  lines.push('', `Mods cargados (${mods.length})`)
+  lines.push('', text.modsLoaded(mods.length))
   for (const mod of mods) lines.push(`  ${mod.name} v${mod.version}${mod.description ? ` - ${mod.description}` : ''}`)
   return lines.join('\n')
 }
@@ -110,18 +113,24 @@ export function canBlock(event: string): boolean {
   return BLOCKING_EVENTS.has(event)
 }
 
-// A matcher as short chips: `*` reads "todos", MCP regexes lose their boilerplate,
+// A matcher as short chips: `*` reads as the localized "all", MCP regexes lose their boilerplate,
 // and anything beyond MAX_CHIPS collapses into a "+N" chip.
-export function matcherChips(matcher: string): string[] {
-  if (matcher === '*') return ['todos']
+export function matcherChips(matcher: string, lang: Lang = 'en'): string[] {
+  if (matcher === '*') return [t(lang).allChip]
   const readable = matcher.startsWith('mcp__') ? [matcher.replace(/^mcp__(\.\*)?_*/, 'mcp:').replace(/\(([^)]*)\)\?/g, '[$1]')] : matcher.split('|')
   if (readable.length <= MAX_CHIPS) return readable
   return [...readable.slice(0, MAX_CHIPS), `+${readable.length - MAX_CHIPS}`]
 }
 
-export function summaryText(hooks: HookRow[], mods: ModRow[]): string {
+// Known settings layers read in the active language; an unknown one shows as it came.
+export function sourceLabel(source: string, lang: Lang = 'en'): string {
+  return t(lang).sources[source] ?? source
+}
+
+export function summaryText(hooks: HookRow[], mods: ModRow[], lang: Lang = 'en'): string {
+  const text = t(lang)
   const bySource = new Map<string, number>()
   for (const row of hooks) bySource.set(row.source, (bySource.get(row.source) ?? 0) + 1)
-  const sources = [...bySource].map(([source, count]) => `${count} ${source}`)
-  return [`${hooks.length} hooks`, ...sources, `${mods.length} mods`].join(' · ')
+  const sources = [...bySource].map(([source, count]) => `${count} ${sourceLabel(source, lang)}`)
+  return [text.hooksCount(hooks.length), ...sources, text.modsCount(mods.length)].join(' · ')
 }

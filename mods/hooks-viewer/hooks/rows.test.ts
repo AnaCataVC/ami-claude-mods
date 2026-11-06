@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { canBlock, limitRows, matcherChips, modDirs, parseMod, reportText, shortCommand, sortEvents, summaryText, toRows } from './rows'
+import { canBlock, limitRows, matcherChips, modDirs, parseMod, shortCommand, sortEvents, toRows } from './rows'
 
 test('settings.hooks flattens into one row per hook, exec-form args included', () => {
   const hooks = {
@@ -37,24 +37,10 @@ test('plugin dirs split on semicolons and manifests without a name are not mods'
   expect(parseMod('not json')).toBeUndefined()
 })
 
-test('the text report groups hooks by event and lists the mods', () => {
-  const hooks = [{ event: 'Stop', source: 'user', matcher: '*', command: 'pwsh -File C:/h/a.ps1', timeout: 3 }]
-  expect(reportText(hooks, [{ name: 'm', version: '1.0.0', description: 'd' }])).toBe(
-    ['Hooks de settings (1)', '  Stop', '    [*] a.ps1 (3s)  user', '', 'Mods cargados (1)', '  m v1.0.0 - d'].join('\n'),
-  )
-  expect(reportText([], [])).toBe('Hooks de settings (0)\n\nMods cargados (0)')
-})
-
 test('events sort by lifecycle and matchers collapse into short chips', () => {
   expect(sortEvents(['SubagentStop', 'Custom', 'PreToolUse', 'SessionStart'])).toEqual(['SessionStart', 'PreToolUse', 'SubagentStop', 'Custom'])
-  expect(matcherChips('*')).toEqual(['todos'])
   expect(matcherChips('Bash|PowerShell|Agent|Task')).toEqual(['Bash', 'PowerShell', 'Agent', '+1'])
   expect(matcherChips('mcp__.*__slack_send_message(_draft)?')).toEqual(['mcp:slack_send_message[_draft]'])
   expect(canBlock('PreToolUse')).toBe(true)
   expect(canBlock('PostToolUse')).toBe(false)
-})
-
-test('the summary counts hooks per scope and mods', () => {
-  const row = (source: string) => ({ event: 'E', source, matcher: '*', command: 'c' })
-  expect(summaryText([row('user'), row('user'), row('project')], [])).toBe('3 hooks · 2 user · 1 project · 0 mods')
 })

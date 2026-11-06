@@ -50,7 +50,7 @@ test('tracked containers and volumes are matched against what docker reports', a
 test('a failed volume listing leaves the volumes unverified instead of gone', async () => {
   const state = { ...emptyTracked(), volumes: ['pgdata'] }
   const { run } = fakeRunner({ [PS]: ok(''), [VOLUMES]: { status: 'error' } })
-  expect(await collectDocker(run, state)).toMatchObject({ status: 'up', volumes: [], unverified: ['el volumen pgdata'] })
+  expect(await collectDocker(run, state)).toMatchObject({ status: 'up', volumes: [], unverified: [expect.stringContaining('pgdata')] })
 })
 
 test('legacy compose runs docker-compose in its directory; a failed ps stays unverified', async () => {
@@ -67,6 +67,6 @@ test('legacy compose runs docker-compose in its directory; a failed ps stays unv
     containers: [],
     composes: ['old'],
     volumes: [],
-    unverified: ['el proyecto compose C:/other'],
+    unverified: [expect.stringContaining('C:/other')],
   })
 })

@@ -1,4 +1,6 @@
 import type { ContextGuardConfig, Profile, Snapshot } from '../types'
+import { t } from './messages'
+import type { Lang } from './messages'
 
 const GH_HOST = 'github.com'
 
@@ -82,27 +84,50 @@ export function kubeLabel(context: string): string {
   return project === cluster ? cluster : `${cluster} (${project})`
 }
 
-export function statusText(snapshot: Snapshot, cwd: string, config?: ContextGuardConfig): string {
-  const parts: string[] = []
+const STATUS_MAX_LENGTH = 32
+const STATUS_SEPARATOR = ' · '
+const STATUS_MAX_PARTS = 2
+
+interface StatusPart {
+  text: string
+  // Lower ranks survive when the line has to be shortened: alerts first.
+  rank: number
+  order: number
+}
+
+function truncate(value: string, max: number): string {
+  return value.length <= max ? value : `${value.slice(0, max - 1)}…`
+}
+
+// Fits the status row: at most two parts, least important dropped first, last resort truncation.
+export function statusText(snapshot: Snapshot, cwd: string, config?: ContextGuardConfig, lang: Lang = 'en'): string {
+  const text = t(lang)
+  const candidates: StatusPart[] = []
   const matched = findMatchingProfile(cwd, config?.profiles)
 
   if (snapshot.gh) {
-    const isMismatch = isAccountMismatch(snapshot.gh, cwd, config?.profiles)
     const label = accountLabel(snapshot.gh, matched)
-    parts.push(`GitHub: ${label}${isMismatch ? ' ✗ no coincide' : matched ? ' ✓' : ''}`)
+    if (isAccountMismatch(snapshot.gh, cwd, config?.profiles)) {
+      candidates.push({ text: `✕ ${label}`, rank: 0, order: 0 })
+    } else {
+      candidates.push({ text: matched ? `✓ ${label}` : label, rank: 2, order: 0 })
+    }
   } else {
-    parts.push('GitHub: sin cuenta')
+    candidates.push({ text: text.noAccount, rank: 2, order: 0 })
   }
 
   if (snapshot.kube) {
     const label = kubeLabel(snapshot.kube)
     const isProd = (config?.warnProductionKube ?? true) && isProdContext(snapshot.kube)
-    parts.push(`kubectl: ${label}${isProd ? ' ⚠ prod' : ''}`)
+    candidates.push({ text: isProd ? `⚠ ${label}` : label, rank: isProd ? 1 : 4, order: 1 })
   }
 
   if (matched?.disallowCommits) {
-    parts.push('sin commits directos')
+    candidates.push({ text: text.noDirectCommits, rank: 3, order: 2 })
   }
 
-  return parts.join(' · ')
+  const kept = [...candidates].sort((a, b) => a.rank - b.rank).slice(0, STATUS_MAX_PARTS)
+  const render = (): string => [...kept].sort((a, b) => a.order - b.order).map(part => part.text).join(STATUS_SEPARATOR)
+  while (kept.length > 1 && render().length > STATUS_MAX_LENGTH) kept.pop()
+  return truncate(render(), STATUS_MAX_LENGTH)
 }

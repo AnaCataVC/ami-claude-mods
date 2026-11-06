@@ -5,8 +5,16 @@ import { THRESHOLD, WARN_FROM } from './meter'
 
 const statuses: Array<string | undefined> = []
 
-function fakeEngine(on: On, env: Record<string, string> = {}) {
-  mock.env(on, env)
+function fakeEngine(on: On, env: Record<string, string> = {}, options: { rejectEnv?: boolean } = {}) {
+  if (options.rejectEnv) {
+    on('env.get', async (_$, e) => {
+      if ((e as unknown as { name: string }).name === 'CLAUDE_MODS_LANG') throw new Error('env unavailable')
+      return { value: undefined } as never
+    })
+  } else {
+    mock.env(on, env)
+  }
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }) as never)
   statuses.length = 0
   on('ui.status', async (_$, e) => {
     statuses.push((e as unknown as { text?: string }).text)
@@ -42,14 +50,45 @@ test('counts reads, blocks exactly at the threshold and restarts from 0', async 
   expect(count()).toBe(1)
 })
 
-test('status stays undefined below WARN_FROM and shows the gauge from WARN_FROM', async ($, on) => {
-  fakeEngine(on)
+async function statusAt(lang: string | undefined, $: Parameters<Parameters<typeof test>[1]>[0], on: On) {
+  fakeEngine(on, lang === undefined ? {} : { CLAUDE_MODS_LANG: lang })
+  await $.session.start({ source: 'startup', cwd: 'C:/proj' } as never)
   for (let i = 1; i < WARN_FROM; i += 1) {
     await $.tool.call({ tool: 'Read', file_path: 'a' } as never)
     expect(statuses[statuses.length - 1]).toBeUndefined()
   }
   await $.tool.call({ tool: 'Read', file_path: 'a' } as never)
-  expect(statuses[statuses.length - 1]).toBe(`lecturas sin delegar ▰▰▰▰▰▰▰▱▱▱ ${WARN_FROM}/${THRESHOLD}`)
+  return statuses[statuses.length - 1]
+}
+
+test('es: status stays undefined below WARN_FROM and shows the Spanish status from WARN_FROM', async ($, on) => {
+  expect(await statusAt('es', $, on)).toBe(`⚠ ${WARN_FROM}/${THRESHOLD} lecturas sin delegar`)
+})
+
+test('en (CLAUDE_MODS_LANG unset): the status is shown in English and is not the Spanish text', async ($, on) => {
+  const text = await statusAt(undefined, $, on)
+  expect(text).toBe(`⚠ ${WARN_FROM}/${THRESHOLD} reads without delegating`)
+  expect(text).not.toContain('lecturas sin delegar')
+})
+
+test('a value other than es (es-CL) falls back to English', async ($, on) => {
+  const text = await statusAt('es-CL', $, on)
+  expect(text).not.toContain('lecturas sin delegar')
+})
+
+test('a rejecting env.get leaves the mod working in English', async ($, on) => {
+  fakeEngine(on, {}, { rejectEnv: true })
+  await $.session.start({ source: 'startup', cwd: 'C:/proj' } as never)
+  const result = await $.tool.call({ tool: 'Read', file_path: 'a' } as never)
+  expect(isBlocked(result)).toBe(false)
+})
+
+test('the deny reason addressed to the model is identical in en and es', async ($, on) => {
+  fakeEngine(on, { CLAUDE_MODS_LANG: 'es' })
+  await $.session.start({ source: 'startup', cwd: 'C:/proj' } as never)
+  let denied: string | undefined
+  for (let i = 0; i < THRESHOLD; i += 1) denied = (await $.tool.call({ tool: 'Read', file_path: 'a' } as never)).deny
+  expect(denied).toBe(`${THRESHOLD} consecutive mechanical reads without delegating: dispatch to an exploration subagent or proceed (counter resets).`)
 })
 
 test('Agent and Task reset the count; other tools do not count', async ($, on) => {

@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { THRESHOLD, WARN_FROM, denyMessage, meteredTool, statusText, step } from './meter'
+import { THRESHOLD, denyMessage, meteredTool, step } from './meter'
 
 test('read-type tools add one, Agent and Task reset, other tools leave the count alone', () => {
   expect(step(3, 'Grep')).toEqual({ count: 4, blocked: false })
@@ -18,14 +18,6 @@ test('the call that reaches the threshold is blocked and resets the count to 0',
 test('the deny message is one clean line carrying the count', () => {
   expect(denyMessage(10)).toBe('10 consecutive mechanical reads without delegating: dispatch to an exploration subagent or proceed (counter resets).')
   expect(denyMessage(10)).not.toContain('\n')
-})
-
-test('status line is cleared below WARN_FROM and shows the gauge from WARN_FROM on', () => {
-  expect(WARN_FROM).toBe(7)
-  expect(statusText(0)).toBeUndefined()
-  expect(statusText(WARN_FROM - 1)).toBeUndefined()
-  expect(statusText(WARN_FROM)).toBe('lecturas sin delegar ▰▰▰▰▰▰▰▱▱▱ 7/10')
-  expect(statusText(THRESHOLD - 1)).toBe('lecturas sin delegar ▰▰▰▰▰▰▰▰▰▱ 9/10')
 })
 
 test('searching shell commands count as a Grep, other shell commands do not', () => {

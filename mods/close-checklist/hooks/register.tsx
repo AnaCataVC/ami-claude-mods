@@ -18,15 +18,17 @@ import {
 } from './checklist'
 import { collectDocker, collectGit } from './collect'
 import type { RunOutcome } from './collect'
+import { langFrom, t } from './messages'
+import type { Lang } from './messages'
 
 const PANE = 'close-checklist'
-const TITLE = 'Antes de cerrar'
 const SHORT_TIMEOUT_MS = 8000
 const SHELL_TOOLS = new Set(['Bash', 'PowerShell'])
 const FILE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit'])
 
 const tracked = atom({ plugin: 'close-checklist', key: 'tracked' } as const, emptyTracked())
 const sections = atom({ plugin: 'close-checklist', key: 'sections' } as const, null)
+const lang = atom({ plugin: 'close-checklist', key: 'lang' } as const, 'en' as Lang)
 
 const runner =
   ($: Engine) =>
@@ -50,19 +52,34 @@ async function countScratchpad($: Engine, cwd: string): Promise<number | null> {
   }
 }
 
+// A failing env read must not break the mod: it falls back to English.
+async function loadLang($: Engine): Promise<void> {
+  let raw: string | undefined
+  try {
+    raw = (await $.env.get('CLAUDE_MODS_LANG')) as string | undefined
+  } catch {
+    // Falls back to English
+  }
+  await update($, lang, () => langFrom(raw))
+}
+
 async function collectSections($: Engine): Promise<ChecklistSection[]> {
+  const current = await read($, lang)
   const cwd = (await $.session.cwd()) as string
   const state = await read($, tracked)
   const run = runner($)
   const existing: string[] = []
   for (const file of state.files) if (await $.fs.exists(file)) existing.push(file)
-  return buildSections({
-    git: await collectGit(run, cwd),
-    docker: await collectDocker(run, state),
-    scratchFiles: await countScratchpad($, cwd),
-    files: existing,
-    lingering: lingeringItems(withDefaults(state)),
-  })
+  return buildSections(
+    {
+      git: await collectGit(run, cwd),
+      docker: await collectDocker(run, state, current),
+      scratchFiles: await countScratchpad($, cwd),
+      files: existing,
+      lingering: lingeringItems(withDefaults(state), current),
+    },
+    current,
+  )
 }
 
 async function refresh($: Engine): Promise<void> {
@@ -106,17 +123,19 @@ async function trackToolCall($: Engine, e: ToolCallInput): Promise<void> {
 
 async function openPane($: Engine) {
   await refresh($)
-  await $.ui.open({ id: PANE, title: TITLE, focus: true })
-  return { text: 'Panel de checklist abierto.' }
+  const text = t(await read($, lang))
+  await $.ui.open({ id: PANE, title: text.paneTitle, focus: true })
+  return { text: text.paneOpened }
 }
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'cierre', description: 'Revisa los pendientes y recursos antes de cerrar la sesión' })
+    await loadLang($)
+    await $.command.register({ name: 'closing-checklist', description: t(await read($, lang)).commandDescription })
     return next(e)
   })
 
-  on('command.run', { command: 'cierre' }, async $ => openPane($))
+  on('command.run', { command: 'closing-checklist' }, async $ => openPane($))
 
   for (const tool of [...SHELL_TOOLS, ...FILE_TOOLS, ...TRACKED_RESOURCE_TOOLS]) {
     on('tool.call', { tool }, async ($, e, next) => {
@@ -135,7 +154,7 @@ export const register: Register = on => {
   on('session.end', async ($, e, next) => {
     if (e.reason !== 'clear') {
       try {
-        const line = summarize(await collectSections($))
+        const line = summarize(await collectSections($), await read($, lang))
         if (line !== undefined) $.ui.toast(line)
       } catch {
         // Session ending
@@ -147,18 +166,19 @@ export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Button } = $.ui.resolve(e)
     const list = await read($, sections)
+    const text = t(await read($, lang))
     return (
       <Box flexDirection="column" gap={1}>
         <Box gap={2}>
-          <Button label="↻ actualizar" hotkey="r" plain autoFocus onPress={() => refresh($)} />
+          <Button label={text.refresh} hotkey="r" plain autoFocus onPress={() => refresh($)} />
           {list === null ? null : (
             <Text dimColor>
-              {list.reduce((pending, section) => pending + section.items.filter(item => !item.ok).length, 0)} pendientes
+              {text.pendingCount(list.reduce((pending, section) => pending + section.items.filter(item => !item.ok).length, 0))}
             </Text>
           )}
         </Box>
         {list === null ? (
-          <Text dimColor>Sin datos. Presiona r para actualizar.</Text>
+          <Text dimColor>{text.noData}</Text>
         ) : (
           list.map(section => {
             const pending = section.items.filter(item => !item.ok).length
@@ -173,7 +193,7 @@ export const register: Register = on => {
               >
                 <Box gap={1}>
                   <Text weight="bold">{section.title}</Text>
-                  <Text color={pending === 0 ? 'success' : 'warning'}>{pending === 0 ? 'al día' : `${pending} por revisar`}</Text>
+                  <Text color={pending === 0 ? 'success' : 'warning'}>{pending === 0 ? text.upToDate : text.toReview(pending)}</Text>
                 </Box>
                 {section.items.map((item, index) => (
                   <Text key={`${index}:${item.text}`} color={item.ok ? 'success' : 'warning'} wrap="truncate-end">

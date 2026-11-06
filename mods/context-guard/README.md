@@ -9,7 +9,7 @@ Working across multiple GitHub accounts (e.g. personal vs work) and Kubernetes c
 ## Features
 
 - **GitHub CLI Alignment:** Detects active user in `hosts.yml` and warns if operating in a project directory that expects a different account.
-- **Production Kubernetes Safeguard:** Identifies production cluster contexts (`prod`, `production`, `live`) and flags them in the status line (`⚠ prod`). A GitHub account mismatch is flagged there too (`✗ no coincide`).
+- **Production Kubernetes Safeguard:** Identifies production cluster contexts (`prod`, `production`, `live`) and flags them in the status line (`⚠ prod-cluster`). A GitHub account mismatch is flagged there too (`✕ other-user`). The status line stays within 32 characters: alerts come first, then the GitHub account (`✓ Work` when it matches a profile), then the cluster. The mod draws only the status line (no band, toast or pane).
 - **Explicit Context Enforcement:** Blocks bare `kubectl` commands without `--context` to prevent accidental mutations when concurrent processes switch the global kube context.
 - **Configurable Profiles:** Define directory mappings via `context-guard.json`.
 

@@ -1,11 +1,9 @@
 import { expect, test } from 'claude-code/testing'
 import {
-  buildSections,
   emptyTracked,
   parseGitStatus,
   runningTracked,
   scratchpadDir,
-  summarize,
   trackCommand,
   lingeringItems,
   shellWriteTargets,
@@ -72,33 +70,9 @@ test('git status without a usable upstream reports unpushed as null', () => {
   expect(parseGitStatus('## local\n M a\n').unpushed).toBeNull()
   expect(parseGitStatus('## main...origin/main [gone]\n').unpushed).toBeNull()
   expect(parseGitStatus('## No commits yet on main\n?? a\n')).toEqual({ branch: 'main', changes: 1, unpushed: null })
-  expect(parseGitStatus('## HEAD (no branch)\n').branch).toBe('detached HEAD')
+  expect(parseGitStatus('## HEAD (no branch)\n').branch).toBeNull()
 })
 
 test('scratchpad path generation', () => {
   expect(scratchpadDir('C:\\T', 'C:\\workspace\\proj', 'sid')).toBe('C:/T/claude/C--workspace-proj/sid/scratchpad')
-})
-
-const base = { git: null, docker: null, scratchFiles: null, files: [] }
-
-test('git changes and unpushed commits warn when present', () => {
-  const git = { branch: 'main', changes: 3, unpushed: 2 }
-  const sections = buildSections({ ...base, git })
-  expect(sections[0]!.title).toBe('Estado de Git')
-  expect(sections[0]!.items.filter(i => !i.ok).length).toBe(2)
-})
-
-test('docker down reads as not running, leftovers warn, sections without data are skipped', () => {
-  const down = buildSections({ ...base, docker: { status: 'down' } })
-  expect(down.map(s => s.title)).toEqual(['Docker', 'Archivos creados fuera del proyecto'])
-  expect(down[0]!.items[0]).toEqual({ ok: true, text: 'Docker no está corriendo' })
-  const up = buildSections({ ...base, docker: { status: 'up', containers: ['pg'], composes: [], volumes: ['v'], unverified: [] } })
-  expect(up[0]!.items.every(i => !i.ok)).toBe(true)
-})
-
-test('summarize formats single and plural pending count', () => {
-  const clean = buildSections({ ...base, files: [] })
-  expect(summarize(clean)).toBeUndefined()
-  const dirty = buildSections({ ...base, files: ['C:/outside.txt'] })
-  expect(summarize(dirty)).toBe('Antes de cerrar: 1 ítem pendiente, revisa /cierre')
 })

@@ -9,4 +9,4 @@ Interactive inspector panel and slash command listing all configured settings ho
 ## Usage
 
 - The pane does not open at session start. Run `/hooks-panel` to open it focused (it also replies with the text report).
-- Press `r` (actualiza) to reload hooks and mod manifests.
+- Press `r` (refresh) to reload hooks and mod manifests.

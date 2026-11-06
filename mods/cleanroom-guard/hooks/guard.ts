@@ -1,6 +1,9 @@
 // Double-Blind Cleanroom isolation logic: enforces strict separation between
 // implementation workers and test-authoring workers.
 
+import { t } from './messages'
+import type { Lang } from './messages'
+
 export const IMPLEMENTER = 'code-implementer-jr'
 export const TEST_WRITER = 'test-writer-jr'
 export const AMI_BUILDER = 'ami-cleanroom-builder'
@@ -76,7 +79,8 @@ function shellTokens(command: string, agentType: string): string[] {
   return visible.split(TOKEN_SEPARATORS).filter(Boolean)
 }
 
-type Violation = { reason: string; target: string }
+// A missing target means the violation has no single path (a working tree diff).
+type Violation = { reason: string; target?: string }
 
 function violationOf(agentType: string | undefined, call: Call): Violation | undefined {
   const isImpl = isImplementerRole(agentType)
@@ -100,7 +104,6 @@ function violationOf(agentType: string | undefined, call: Call): Violation | und
   }
   if (isShell && GIT_UNCOMMITTED_READ.test(command)) {
     return {
-      target: 'diff del working tree',
       reason: `cleanroom: ${agentType} cannot inspect working tree diffs (exposes implementation). Use \`git show HEAD:<path>\` or the contract.`,
     }
   }
@@ -114,11 +117,15 @@ export function denyReason(agentType: string | undefined, call: Call): string | 
   return violationOf(agentType, call)?.reason
 }
 
-// Short Spanish one-liner for the user's toast; shows only the basename.
-export function toastText(agentType: string | undefined, call: Call): string | undefined {
+// Short one-liner for the user's toast in their language; shows only the basename.
+export function toastText(agentType: string | undefined, call: Call, lang: Lang = 'en'): string | undefined {
   const violation = violationOf(agentType, call)
   if (!violation) return undefined
-  const action = WRITE_TOOLS.has(call.tool) ? 'escribir' : 'leer'
-  const name = normalize(violation.target).split('/').filter(Boolean).pop() ?? violation.target
-  return `cleanroom: bloqueé a ${agentType} ${action} ${name}`
+  const text = t(lang)
+  const action = WRITE_TOOLS.has(call.tool) ? text.actionWrite : text.actionRead
+  const name =
+    violation.target === undefined
+      ? text.workingTreeDiff
+      : (normalize(violation.target).split('/').filter(Boolean).pop() ?? violation.target)
+  return text.blocked(agentType, action, name)
 }

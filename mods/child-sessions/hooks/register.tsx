@@ -13,11 +13,14 @@ import {
   waitingPeers,
 } from './inbox'
 import type { Contact } from './inbox'
+import { langFrom, t } from './messages'
+import type { Lang } from './messages'
 
 const peers = atom({ plugin: 'child-sessions', key: 'peers' } as const, [])
 const subagentNames = atom({ plugin: 'child-sessions', key: 'subagentNames' } as const, [])
 const dismissed = atom({ plugin: 'child-sessions', key: 'dismissed' } as const, {})
 const expanded = atom({ plugin: 'child-sessions', key: 'expanded' } as const, [])
+const lang = atom({ plugin: 'child-sessions', key: 'lang' } as const, 'en' as Lang)
 
 const SEND_TO_SESSION = 'mcp__ccd_session_mgmt__send_message'
 const PEER_ORIGINS = new Set(['peer', 'peer-send-message'])
@@ -69,15 +72,22 @@ function succeeded(ran: { deny?: unknown; isError?: boolean }): boolean {
   return ran.deny === undefined && ran.isError !== true
 }
 
-function ago(at: number): string {
+function ago(at: number, language: Lang): string {
+  const text = t(language)
   const minutes = Math.floor((Date.now() - at) / 60000)
-  return minutes < 1 ? 'recién' : minutes < 60 ? `hace ${minutes}m` : `hace ${Math.floor(minutes / 60)}h`
+  return minutes < 1 ? text.justNow : minutes < 60 ? text.minutesAgo(minutes) : text.hoursAgo(Math.floor(minutes / 60))
 }
 
-// A bare digit in an empty composer presses a band Button, so digits reach every row
-// without focusing the band; letters only work once ctrl+x tab focuses it, so only
-// the top row gets them to avoid clashes.
-const KEYBOARD_HINT = '1-3 en el prompt vacío responde · ctrl+x tab: v ver, d descartar, tab para moverte'
+// A failing env read must not break the mod: it falls back to English.
+async function loadLang($: Engine): Promise<void> {
+  let raw: string | undefined
+  try {
+    raw = (await $.env.get('CLAUDE_MODS_LANG')) as string | undefined
+  } catch {
+    // Falls back to English
+  }
+  await update($, lang, () => langFrom(raw))
+}
 
 async function dismiss($: Engine, peer: Peer) {
   await update($, dismissed, map => capDismissed({ ...map, [peer.key]: peer.lastAt }, MAX_PEERS))
@@ -97,11 +107,13 @@ async function reply($: Engine, peer: Peer, surface: RenderSurface) {
     return
   }
   await $.ui.copy({ text, surface })
-  $.ui.toast('Instrucción de respuesta copiada al portapapeles: pégala en el prompt')
+  $.ui.toast(t(await read($, lang)).replyCopied)
 }
 
 async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) {
   const { Box, Button, Text } = $.ui.resolve(e)
+  const current = await read($, lang)
+  const text = t(current)
   const waiting = waitingPeers(await read($, peers), await read($, dismissed))
   if (waiting.length === 0) return undefined
   const open = new Set(await read($, expanded))
@@ -122,16 +134,16 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
           <Box key={peer.key} flexDirection="column">
             <Box>
               <Box flexGrow={1}>
-                <Text wrap="truncate-end" color={peer.asked ? 'yellow' : undefined} bold={peer.asked}>
+                <Text wrap="truncate-end" color={peer.asked ? 'warning' : undefined} weight={peer.asked ? 'bold' : undefined}>
                   {peer.asked ? '? ' : '↙ '}
                   {peer.name}
-                  <Text dimColor> · {ago(peer.lastAt)}{peer.lastMessage ? ` · “${peer.lastMessage}”` : ''}</Text>
+                  <Text dimColor> · {ago(peer.lastAt, current)}{peer.lastMessage ? ` · “${peer.lastMessage}”` : ''}</Text>
                 </Text>
               </Box>
               <Box gap={1} flexShrink={0}>
                 <Button
                   key={`reply:${peer.key}`}
-                  label="responder"
+                  label={text.reply}
                   hotkey={String(index + 1)}
                   plain
                   {...(isTop ? { autoFocus: true as const } : {})}
@@ -140,7 +152,7 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
                 {full && (
                   <Button
                     key={`view:${peer.key}`}
-                    label={isOpen ? 'ocultar' : 'ver'}
+                    label={isOpen ? text.hide : text.view}
                     {...(isTop ? { hotkey: 'v' } : {})}
                     plain
                     dimColor
@@ -149,7 +161,7 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
                 )}
                 <Button
                   key={`done:${peer.key}`}
-                  label="descartar"
+                  label={text.dismiss}
                   {...(isTop ? { hotkey: 'd' } : {})}
                   plain
                   dimColor
@@ -165,13 +177,21 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
           </Box>
         )
       })}
-      {extra > 0 && <Text dimColor>+{extra} más</Text>}
-      <Text dimColor wrap="truncate-end">{KEYBOARD_HINT}</Text>
+      {extra > 0 && <Text dimColor>{text.more(extra)}</Text>}
+      {/* A bare digit in an empty composer presses a band Button, so digits reach every row
+         without focusing the band; letters only work once ctrl+x tab focuses it, so only
+         the top row gets them to avoid clashes. */}
+      <Text dimColor wrap="truncate-end">{text.keyboardHint}</Text>
     </Box>
   )
 }
 
 export const register: Register = on => {
+  on('session.start', async ($, e, next) => {
+    await loadLang($)
+    return next(e)
+  }).catch(($, e, next) => next(e))
+
   on('session.receive', async ($, e, next) => {
     const origin = e.origin as { kind: string }
     const sender = PEER_ORIGINS.has(origin.kind) && e.agentId === undefined ? senderOf(e.text) : undefined

@@ -1,5 +1,5 @@
 import type { On } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 import type { TestBody } from 'claude-code/testing'
 
 import type { Peer } from '../types'
@@ -23,7 +23,16 @@ const envelope = (from: string, name: string, body = 'done') =>
 
 type Calls = { opens: unknown[]; submits: string[]; copies: string[]; toasts: string[]; state: Map<string, unknown> }
 
-function fakeEngine(on: On, options: { subagentIds?: string[]; dropSubmit?: boolean } = {}): Calls {
+function fakeEngine(on: On, options: { subagentIds?: string[]; dropSubmit?: boolean; lang?: string } = {}): Calls {
+  if (options.lang === 'reject') {
+    on('env.get', async (_$, e) => {
+      if ((e as unknown as { name: string }).name === 'CLAUDE_MODS_LANG') throw new Error('env unavailable')
+      return { value: undefined } as never
+    })
+  } else {
+    mock.env(on, options.lang === undefined ? {} : { CLAUDE_MODS_LANG: options.lang })
+  }
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }) as never)
   const calls: Calls = { opens: [], submits: [], copies: [], toasts: [], state: new Map() }
   on('state.set', async (_$, e, next) => {
     calls.state.set(e.key, (e as unknown as { value: unknown }).value)
@@ -60,6 +69,8 @@ const rows = (calls: Calls) => (calls.state.get('peers') as Peer[] | undefined) 
 
 const receive = ($: TestEngine, from: string, name: string, body?: string) =>
   $.session.receive({ origin: { kind: 'peer' }, text: envelope(from, name, body) } as never)
+
+const startSession = ($: TestEngine) => $.session.start({ source: 'startup', cwd: 'C:/proj' } as never)
 
 const mountBand = ($: TestEngine, surface: (typeof SURFACES)[number]) =>
   $.ui.mount({ ...BAND, surface, props: BAND.props as never })
@@ -152,7 +163,7 @@ test('the band lists questions before reports, even older ones', async ($, on) =
     const replies = (await ui.findAll({ type: 'Button' })).filter(b => b.key?.startsWith('reply:'))
     expect(replies.map(b => b.key)).toEqual([`reply:${ADDRESS}`, `reply:${OTHER}`])
     const question = await ui.find({ type: 'Text', text: /^\? Review/ })
-    expect(question?.props.color).toBe('yellow')
+    expect(question?.props.color).toBe('warning')
     expect(await ui.find({ type: 'Text', text: /^↙ Deploy/ })).toBeDefined()
     await ui.unmount()
   }
@@ -173,8 +184,9 @@ test('reply submits the reply instruction and dismisses the peer', async ($, on)
   }
 })
 
-test('reply copies the instruction when prompt drops it, keeping peer waiting', async ($, on) => {
-  const calls = fakeEngine(on, { dropSubmit: true })
+test('es: reply copies the instruction when prompt drops it, keeping peer waiting', async ($, on) => {
+  const calls = fakeEngine(on, { dropSubmit: true, lang: 'es' })
+  await startSession($)
   await receive($, ADDRESS, 'Review', 'Should I wait?')
   for (const surface of SURFACES) {
     const ui = await mountBand($, surface)
@@ -186,8 +198,9 @@ test('reply copies the instruction when prompt drops it, keeping peer waiting', 
   }
 })
 
-test('view shows full message and hide closes it', async ($, on) => {
-  const calls = fakeEngine(on)
+test('es: view shows full message and hide closes it', async ($, on) => {
+  const calls = fakeEngine(on, { lang: 'es' })
+  await startSession($)
   const body = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join('\n')
   await receive($, ADDRESS, 'Review', body)
   for (const surface of SURFACES) {
@@ -203,8 +216,9 @@ test('view shows full message and hide closes it', async ($, on) => {
   }
 })
 
-test('each row replies by its digit and only the top row takes letter hotkeys', async ($, on) => {
-  fakeEngine(on)
+test('es: each row replies by its digit and only the top row takes letter hotkeys', async ($, on) => {
+  fakeEngine(on, { lang: 'es' })
+  await startSession($)
   await receive($, ADDRESS, 'Review', 'Should I wait or deploy?')
   await receive($, OTHER, 'Deploy', 'PR open, tests green')
   const ui = await mountBand($, 'terminal')
@@ -223,5 +237,52 @@ test('dismiss removes the peer from the band', async ($, on) => {
   await ui.press({ key: `done:${ADDRESS}` })
   expect(await ui.find({ key: `reply:${ADDRESS}` })).toBeUndefined()
   expect(await ui.find({ key: ENGINE_BAND })).toBeDefined()
+  await ui.unmount()
+})
+
+test('en: the toast, the view toggle and the keyboard hint are not the Spanish texts, and the instruction stays the same', async ($, on) => {
+  const calls = fakeEngine(on, { dropSubmit: true })
+  await startSession($)
+  await receive($, ADDRESS, 'Review', Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join('\n'))
+  const ui = await mountBand($, 'terminal')
+  const toggle = await ui.find({ key: `view:${ADDRESS}` })
+  expect(toggle?.props.label).toBeDefined()
+  expect(toggle?.props.label).not.toBe('ver')
+  const closed = String(toggle?.props.label)
+  await ui.press({ key: `view:${ADDRESS}` })
+  expect((await ui.find({ key: `view:${ADDRESS}` }))?.props.label).not.toBe(closed)
+  expect((await ui.find({ key: `view:${ADDRESS}` }))?.props.label).not.toBe('ocultar')
+  await ui.press({ key: `reply:${ADDRESS}` })
+  expect(calls.copies.at(-1)).toContain('Read the latest message from Review and reply to it')
+  expect(calls.toasts.at(-1)).toBeDefined()
+  expect(calls.toasts.at(-1)).not.toContain('copiada al portapapeles')
+  await ui.unmount()
+})
+
+test('es: the reply instruction addressed to the model is the same as in English', async ($, on) => {
+  const calls = fakeEngine(on, { lang: 'es' })
+  await startSession($)
+  await receive($, ADDRESS, 'Review', 'Should I deploy?')
+  const ui = await mountBand($, 'desktop')
+  await ui.press({ key: `reply:${ADDRESS}` })
+  expect(calls.submits.at(-1)).toContain('Read the latest message from Review and reply to it')
+  await ui.unmount()
+})
+
+test('a value other than es (es-CL) shows the English view label', async ($, on) => {
+  fakeEngine(on, { lang: 'es-CL' })
+  await startSession($)
+  await receive($, ADDRESS, 'Review', Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join('\n'))
+  const ui = await mountBand($, 'terminal')
+  expect((await ui.find({ key: `view:${ADDRESS}` }))?.props.label).not.toBe('ver')
+  await ui.unmount()
+})
+
+test('a rejecting env.get leaves the band working in English', async ($, on) => {
+  fakeEngine(on, { lang: 'reject' })
+  await startSession($)
+  await receive($, ADDRESS, 'Review', 'Should I wait?')
+  const ui = await mountBand($, 'terminal')
+  expect(await ui.find({ key: `reply:${ADDRESS}` })).toBeDefined()
   await ui.unmount()
 })

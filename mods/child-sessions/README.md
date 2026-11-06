@@ -9,5 +9,5 @@ In multi-agent environments or cross-session orchestrations, child sessions and 
 ## Features
 
 - **Actionable Buttons:** `[reply]` automatically submits an answering instruction, `[view]` / `[hide]` toggles the full message view, and `[dismiss]` archives the notification.
-- **Priority Sorting:** Questions requiring human or orchestrator decisions are highlighted in yellow and sorted to the top.
+- **Priority Sorting:** Questions requiring human or orchestrator decisions are highlighted with the warning color and sorted to the top.
 - **Clean Addressing:** Supports both `SendMessage` and session management tools.

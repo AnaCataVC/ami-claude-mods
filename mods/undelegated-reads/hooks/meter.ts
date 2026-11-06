@@ -1,5 +1,8 @@
+import { t } from './messages'
+import type { Lang } from './messages'
+
 // Delegation meter rules: the count of consecutive mechanical read calls in the main
-// session, the block at THRESHOLD and the count from which the gauge is shown.
+// session, the block at THRESHOLD and the count from which the status is shown.
 export const THRESHOLD = 10
 export const WARN_FROM = THRESHOLD - 3
 
@@ -30,11 +33,9 @@ export function denyMessage(count: number): string {
   return `${count} consecutive mechanical reads without delegating: dispatch to an exploration subagent or proceed (counter resets).`
 }
 
-// A gauge reads as "how close to the block" at a glance, which a bare fraction does not.
 // Below WARN_FROM there is nothing to warn about, so the status is cleared. The count resets
 // at the blocked call, so the highest visible count is THRESHOLD - 1.
-export function statusText(count: number): string | undefined {
+export function statusText(count: number, lang: Lang = 'en'): string | undefined {
   if (count < WARN_FROM) return undefined
-  const gauge = '▰'.repeat(count) + '▱'.repeat(THRESHOLD - count)
-  return `lecturas sin delegar ${gauge} ${count}/${THRESHOLD}`
+  return t(lang).status(count, THRESHOLD)
 }

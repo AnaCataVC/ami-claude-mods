@@ -1,4 +1,6 @@
 import type { ChecklistItem, ChecklistSection, ComposeProject, Tracked } from '../types'
+import { t } from './messages'
+import type { Lang } from './messages'
 
 export const emptyTracked = (): Tracked => ({
   containers: [],
@@ -147,11 +149,11 @@ export const trackResource = (tracked: Tracked, tool: string): Tracked => {
 
 export const TRACKED_RESOURCE_TOOLS = [...Object.keys(WORKTREE_TOOLS), ...SCHEDULE_CREATE, ...SCHEDULE_DELETE]
 
-export type GitStatus = { branch: string; changes: number; unpushed: number | null }
+export type GitStatus = { branch: string | null; changes: number; unpushed: number | null }
 
 /**
  * Parses `git status --porcelain=v1 --branch`: the `## branch...upstream [ahead N]` header gives the
- * branch and the unpublished commits, the remaining lines are the changed paths. `unpushed` is null
+ * branch (null when detached) and the unpublished commits, the remaining lines are the changed paths. `unpushed` is null
  * when the branch has no live upstream to compare against.
  */
 export const parseGitStatus = (output: string): GitStatus => {
@@ -161,7 +163,7 @@ export const parseGitStatus = (output: string): GitStatus => {
   const text = header.slice(3)
   const unborn = /^(?:No commits yet on|Initial commit on) (.+)$/.exec(text)
   if (unborn) return { branch: unborn[1]!, changes, unpushed: null }
-  if (text.startsWith('HEAD (no branch)')) return { branch: 'detached HEAD', changes, unpushed: null }
+  if (text.startsWith('HEAD (no branch)')) return { branch: null, changes, unpushed: null }
   const [branch = '', tracking] = text.split('...')
   if (tracking === undefined || tracking.includes('[gone]')) return { branch, changes, unpushed: null }
   const ahead = /\[ahead (\d+)/.exec(tracking)
@@ -179,16 +181,16 @@ export const runningTracked = (psOutput: string, tracked: Tracked['containers'])
 }
 
 /** Things the session opened that no query can confirm closed: the person decides. */
-export const lingeringItems = (tracked: Tracked): string[] => [
-  ...tracked.background.map(command => `Proceso en segundo plano: ${command} (puede seguir corriendo)`),
-  ...(tracked.isWorktreeOpen ? ['Worktree sin cerrar: ejecuta ExitWorktree antes de cerrar'] : []),
-  ...(tracked.schedules > 0 ? [`${tracked.schedules} tarea(s) programada(s) activa(s) creada(s) en esta sesión`] : []),
+export const lingeringItems = (tracked: Tracked, lang: Lang = 'en'): string[] => [
+  ...tracked.background.map(t(lang).backgroundProcess),
+  ...(tracked.isWorktreeOpen ? [t(lang).worktreeOpen] : []),
+  ...(tracked.schedules > 0 ? [t(lang).schedules(tracked.schedules)] : []),
 ]
 
 export const scratchpadDir = (temp: string, cwd: string, sessionId: string): string =>
   `${normalize(temp)}/claude/${cwd.replace(/[^a-zA-Z0-9]/g, '-')}/${sessionId}/scratchpad`
 
-export type GitInfo = { branch: string; changes: number; unpushed: number | null }
+export type GitInfo = { branch: string | null; changes: number; unpushed: number | null }
 
 export type DockerInfo =
   | { status: 'down' }
@@ -206,53 +208,53 @@ export type ChecklistInput = {
 const ok = (text: string): ChecklistItem => ({ ok: true, text })
 const warn = (text: string): ChecklistItem => ({ ok: false, text })
 
-const gitItems = (git: GitInfo): ChecklistItem[] => {
-  const changes =
-    git.changes === 0
-      ? ok('Sin cambios sin commitear')
-      : warn(`${git.changes} cambio${git.changes === 1 ? '' : 's'} sin commitear`)
+const gitItems = (git: GitInfo, lang: Lang): ChecklistItem[] => {
+  const text = t(lang)
+  const changes = git.changes === 0 ? ok(text.noUncommitted) : warn(text.uncommitted(git.changes))
   const unpushed =
     git.unpushed === null
-      ? ok('La rama no tiene upstream')
+      ? ok(text.noUpstream)
       : git.unpushed === 0
-        ? ok('Sin commits sin pushear')
-        : warn(`${git.unpushed} commit${git.unpushed === 1 ? '' : 's'} sin pushear`)
-  return [ok(`Rama: ${git.branch}`), changes, unpushed]
+        ? ok(text.noUnpushed)
+        : warn(text.unpushed(git.unpushed))
+  return [ok(git.branch === null ? text.detachedHead : text.branch(git.branch)), changes, unpushed]
 }
 
-const dockerItems = (docker: DockerInfo): ChecklistItem[] => {
-  if (docker.status === 'down') return [ok('Docker no está corriendo')]
-  if (docker.status === 'unknown') return [warn('No se pudo consultar Docker (tiempo agotado o inaccesible)')]
+const dockerItems = (docker: DockerInfo, lang: Lang): ChecklistItem[] => {
+  const text = t(lang)
+  if (docker.status === 'down') return [ok(text.dockerDown)]
+  if (docker.status === 'unknown') return [warn(text.dockerUnknown)]
   const left = [
-    ...docker.containers.map(name => `el contenedor ${name} sigue corriendo`),
-    ...docker.composes.map(name => `el proyecto compose ${name} sigue arriba`),
-    ...docker.volumes.map(name => `el volumen ${name} todavía existe`),
-    ...docker.unverified.map(what => `No se pudo verificar ${what}`),
+    ...docker.containers.map(text.containerRunning),
+    ...docker.composes.map(text.composeUp),
+    ...docker.volumes.map(text.volumeExists),
+    ...docker.unverified.map(text.unverified),
   ]
-  return left.length === 0 ? [ok('Todos los contenedores/servicios iniciados en esta sesión están detenidos')] : left.map(warn)
+  return left.length === 0 ? [ok(text.allStopped)] : left.map(warn)
 }
 
-export const buildSections = (input: ChecklistInput): ChecklistSection[] => {
+export const buildSections = (input: ChecklistInput, lang: Lang = 'en'): ChecklistSection[] => {
+  const text = t(lang)
   const sections: ChecklistSection[] = []
-  if (input.git) sections.push({ title: 'Estado de Git', items: gitItems(input.git) })
-  if (input.docker) sections.push({ title: 'Docker', items: dockerItems(input.docker) })
+  if (input.git) sections.push({ title: text.gitTitle, items: gitItems(input.git, lang) })
+  if (input.docker) sections.push({ title: 'Docker', items: dockerItems(input.docker, lang) })
   if (input.scratchFiles !== null) {
     sections.push({
       title: 'Scratchpad',
-      items: [input.scratchFiles === 0 ? ok('Scratchpad vacío') : warn(`${input.scratchFiles} archivo(s) en el scratchpad`)],
+      items: [input.scratchFiles === 0 ? ok(text.scratchpadEmpty) : warn(text.scratchpadFiles(input.scratchFiles))],
     })
   }
-  if (input.lingering?.length) sections.push({ title: 'Tareas y recursos pendientes', items: input.lingering.map(warn) })
+  if (input.lingering?.length) sections.push({ title: text.lingeringTitle, items: input.lingering.map(warn) })
   sections.push({
-    title: 'Archivos creados fuera del proyecto',
-    items: input.files.length === 0 ? [ok('Ninguno')] : input.files.map(warn),
+    title: text.outsideTitle,
+    items: input.files.length === 0 ? [ok(text.none)] : input.files.map(warn),
   })
   return sections
 }
 
 /** One-line summary for session termination; undefined when everything is clean. */
-export const summarize = (sections: ChecklistSection[]): string | undefined => {
+export const summarize = (sections: ChecklistSection[], lang: Lang = 'en'): string | undefined => {
   const pending = sections.flatMap(section => section.items).filter(item => !item.ok).length
   if (pending === 0) return undefined
-  return `Antes de cerrar: ${pending} ítem${pending === 1 ? '' : 's'} pendiente${pending === 1 ? '' : 's'}, revisa /cierre`
+  return t(lang).summary(pending)
 }

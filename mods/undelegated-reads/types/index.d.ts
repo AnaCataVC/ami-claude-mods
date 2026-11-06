@@ -4,6 +4,6 @@ export type MechanicalCount = number
 
 declare module 'claude-code' {
   interface PluginState {
-    'undelegated-reads': { count: MechanicalCount }
+    'undelegated-reads': { lang: 'en' | 'es'; count: MechanicalCount }
   }
 }

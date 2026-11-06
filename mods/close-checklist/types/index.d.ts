@@ -24,6 +24,6 @@ export type ChecklistSection = { title: string; items: ChecklistItem[] }
 
 declare module 'claude-code' {
   interface PluginState {
-    'close-checklist': { tracked: Tracked; sections: ChecklistSection[] | null }
+    'close-checklist': { lang: 'en' | 'es'; tracked: Tracked; sections: ChecklistSection[] | null }
   }
 }

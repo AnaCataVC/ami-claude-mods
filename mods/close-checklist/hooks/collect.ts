@@ -1,6 +1,8 @@
 import type { Tracked } from '../types'
 import { composeLabel, parseGitStatus, runningTracked } from './checklist'
 import type { DockerInfo, GitInfo } from './checklist'
+import { t } from './messages'
+import type { Lang } from './messages'
 
 /**
  * `ok`: exit 0. `failed`: the command ran and exited non-zero. `error`: it could not start or
@@ -21,7 +23,8 @@ export async function collectGit(run: Runner, cwd: string): Promise<GitInfo | nu
  * Costs no process when nothing was tracked. A query that fails leaves its tracked things in
  * `unverified` instead of reading as gone.
  */
-export async function collectDocker(run: Runner, state: Tracked): Promise<DockerInfo | null> {
+export async function collectDocker(run: Runner, state: Tracked, lang: Lang = 'en'): Promise<DockerInfo | null> {
+  const text = t(lang)
   const { containers, composes, volumes } = state
   if (containers.length + composes.length + volumes.length === 0) return null
   const ps = await run(['docker', 'ps', '--format', '{{.Names}}\t{{.Image}}'])
@@ -35,7 +38,7 @@ export async function collectDocker(run: Runner, state: Tracked): Promise<Docker
     if (list.status === 'ok') {
       const present = new Set(list.stdout.split('\n').map(line => line.trim()))
       leftoverVolumes = volumes.filter(name => present.has(name))
-    } else unverified.push(...volumes.map(name => `el volumen ${name}`))
+    } else unverified.push(...volumes.map(text.unverifiedVolume))
   }
 
   const upComposes: string[] = []
@@ -44,7 +47,7 @@ export async function collectDocker(run: Runner, state: Tracked): Promise<Docker
     const project = compose.project === undefined ? [] : ['-p', compose.project]
     const program = compose.legacy ? ['docker-compose'] : ['docker', 'compose']
     const ids = await run([...program, ...files, ...project, 'ps', '-q'], compose.dir)
-    if (ids.status !== 'ok') unverified.push(`el proyecto compose ${composeLabel(compose)}`)
+    if (ids.status !== 'ok') unverified.push(text.unverifiedCompose(composeLabel(compose)))
     else if (ids.stdout.trim() !== '') upComposes.push(composeLabel(compose))
   }
 

@@ -4,7 +4,7 @@ Pre-exit inspection pane and safety checklist tracking uncommitted Git status, r
 
 ## Overview
 
-When pair-programming with autonomous agents, temporary resources often linger after a session terminates (detached Docker containers, dangling background tasks, unpushed Git commits, or scratchpad notes). `close-checklist` automatically tracks resource creation during the session, exposes an interactive `/cierre` command, and alerts you via toast before exiting if items require your attention.
+When pair-programming with autonomous agents, temporary resources often linger after a session terminates (detached Docker containers, dangling background tasks, unpushed Git commits, or scratchpad notes). `close-checklist` automatically tracks resource creation during the session, exposes an interactive `/closing-checklist` command, and alerts you via toast before exiting if items require your attention.
 
 ## Features
 
