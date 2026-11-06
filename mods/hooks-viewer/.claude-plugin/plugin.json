@@ -1,6 +1,6 @@
 {
   "name": "hooks-viewer",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Interactive inspector panel and slash command listing all configured settings hooks and loaded mods with their origins",
   "author": { "name": "Catalina Villalobos" },
   "types": "./types/index.d.ts"

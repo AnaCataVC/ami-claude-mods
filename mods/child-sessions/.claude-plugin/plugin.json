@@ -1,6 +1,6 @@
 {
   "name": "child-sessions",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Cross-session and inter-agent message inbox above the prompt: prioritizes pending questions, provides full message view, and quick action buttons to reply or dismiss",
   "author": { "name": "Catalina Villalobos" },
   "types": "./types/index.d.ts"

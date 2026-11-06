@@ -1,6 +1,6 @@
 {
   "name": "ami-claude-mods",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Essential production-grade mods and function hooks for Claude Desktop and Claude Code CLI",
   "private": true,
   "type": "module",
