@@ -218,7 +218,7 @@ npm run prepare
 > [!NOTE]
 > Verification passes when all automated test suites complete with 100% success and zero regressions.
 
-For a full breakdown of the CI/CD pipelines, release packaging, and Git hooks, see [docs/automations.md](docs/automations.md).
+For a full breakdown of the CI/CD pipelines, release packaging, and Git hooks, see [docs/automations.md](docs/automations.md). For how releases are versioned (the repository stays on 0.x), see [docs/versioning-policy.md](docs/versioning-policy.md).
 
 ---
 

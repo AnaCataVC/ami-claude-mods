@@ -90,4 +90,5 @@ In Test-Driven Development (TDD), information isolation between implementer and 
 
 - **Automations & CI/CD Pipelines:** See [Automations & Workflow Reference](automations.md) for pre-push hooks, multi-OS matrix testing, and release packaging.
 - **Architectural Learnings & Invariants:** See [Key Learnings & Architectural Invariants](learning/README.md) for individual pattern guides, engine constraints, and runtime lessons.
+- **Versioning Policy:** See [Versioning Policy](versioning-policy.md) for why the repository stays on 0.x and how breaking changes are handled.
 

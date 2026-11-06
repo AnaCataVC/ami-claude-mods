@@ -90,4 +90,5 @@ En el desarrollo guiado por pruebas (TDD), el aislamiento de información entre 
 
 - **Automatizaciones y Pipelines de CI/CD:** Consulta la [Referencia de Automatizaciones y Flujos de Trabajo](automations.es.md) para detalles sobre hooks pre-push, pruebas en matriz multi-SO y empaquetado de releases.
 - **Invariantes y Aprendizajes Arquitectónicos:** Consulta [Aprendizajes Clave e Invariantes Arquitectónicos](learning/README.es.md) para guías individuales de patrones, restricciones del motor y lecciones de runtime.
+- **Política de Versionado:** Consulta [Versioning Policy](versioning-policy.md) para entender por qué el repositorio permanece en 0.x y cómo se manejan los cambios incompatibles.
 
