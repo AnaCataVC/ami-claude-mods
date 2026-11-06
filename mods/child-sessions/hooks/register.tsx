@@ -107,7 +107,13 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
   const open = new Set(await read($, expanded))
   const extra = waiting.length - BAND_MAX_LINES
   return (
-    <Box flexDirection="column">
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      borderColor={waiting.some(peer => peer.asked) ? 'warning' : 'suggestion'}
+      borderDimColor
+      paddingX={1}
+    >
       {waiting.slice(0, BAND_MAX_LINES).map((peer, index) => {
         const full = peer.lastMessageFull ?? peer.lastMessage
         const isOpen = open.has(peer.key) && !!full

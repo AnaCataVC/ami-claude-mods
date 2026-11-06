@@ -90,14 +90,22 @@ export const register: Register = on => {
         {events.map(event => {
           const eventRows = shown.filter(row => row.event === event)
           return (
-            <Box key={event} flexDirection="column" marginTop={1}>
+            <Box
+              key={event}
+              flexDirection="column"
+              marginTop={1}
+              borderStyle="round"
+              borderColor={canBlock(event) ? 'warning' : 'subtle'}
+              borderDimColor
+              paddingX={1}
+            >
               <Box gap={1}>
-                <Text bold>{event}</Text>
+                <Text weight="bold" color="claude">{event}</Text>
                 <Text dimColor>{eventRows.length}</Text>
-                {canBlock(event) ? <Text color="warning">puede bloquear</Text> : null}
+                {canBlock(event) ? <Text color="warning">⛔ puede bloquear</Text> : null}
               </Box>
               {eventRows.map((row, index) => (
-                <Box key={`${row.source}:${row.matcher}:${index}`} flexDirection="column" paddingLeft={2}>
+                <Box key={`${row.source}:${row.matcher}:${index}`} flexDirection="column" paddingLeft={1}>
                   <Box gap={1}>
                     <Box flexGrow={1} flexShrink={1} minWidth={0}>
                       <Text bold wrap="truncate-end">{shortCommand(row.command)}</Text>
@@ -118,12 +126,12 @@ export const register: Register = on => {
           )
         })}
         {hidden > 0 ? <Text dimColor>… y {hidden} más</Text> : null}
-        <Box flexDirection="column" marginTop={1}>
-          <Text bold>Mods cargados ({loaded.length})</Text>
-          <Box flexWrap="wrap" columnGap={2} paddingLeft={2}>
+        <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor="success" borderDimColor paddingX={1}>
+          <Text weight="bold" color="success">Mods cargados ({loaded.length})</Text>
+          <Box flexWrap="wrap" columnGap={2}>
             {loaded.map(mod => (
               <Text key={mod.name} wrap="truncate-end">
-                {mod.name} <Text dimColor>v{mod.version}</Text>
+                <Text color="success">●</Text> {mod.name} <Text dimColor>v{mod.version}</Text>
               </Text>
             ))}
           </Box>

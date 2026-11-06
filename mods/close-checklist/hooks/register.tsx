@@ -148,21 +148,41 @@ export const register: Register = on => {
     const { Box, Text, Button } = $.ui.resolve(e)
     const list = await read($, sections)
     return (
-      <Box flexDirection="column">
-        <Button label="actualizar" hotkey="r" plain autoFocus onPress={() => refresh($)} />
+      <Box flexDirection="column" gap={1}>
+        <Box gap={2}>
+          <Button label="↻ actualizar" hotkey="r" plain autoFocus onPress={() => refresh($)} />
+          {list === null ? null : (
+            <Text dimColor>
+              {list.reduce((pending, section) => pending + section.items.filter(item => !item.ok).length, 0)} pendientes
+            </Text>
+          )}
+        </Box>
         {list === null ? (
           <Text dimColor>Sin datos. Presiona r para actualizar.</Text>
         ) : (
-          list.map(section => (
-            <Box key={section.title} flexDirection="column" marginTop={1}>
-              <Text bold>{section.title}</Text>
-              {section.items.map((item, index) => (
-                <Text key={`${index}:${item.text}`} color={item.ok ? 'green' : 'yellow'}>
-                  {item.ok ? '✓' : '⚠'} {item.text}
-                </Text>
-              ))}
-            </Box>
-          ))
+          list.map(section => {
+            const pending = section.items.filter(item => !item.ok).length
+            return (
+              <Box
+                key={section.title}
+                flexDirection="column"
+                borderStyle="round"
+                borderColor={pending === 0 ? 'success' : 'warning'}
+                borderDimColor={pending === 0}
+                paddingX={1}
+              >
+                <Box gap={1}>
+                  <Text weight="bold">{section.title}</Text>
+                  <Text color={pending === 0 ? 'success' : 'warning'}>{pending === 0 ? 'al día' : `${pending} por revisar`}</Text>
+                </Box>
+                {section.items.map((item, index) => (
+                  <Text key={`${index}:${item.text}`} color={item.ok ? 'success' : 'warning'} wrap="truncate-end">
+                    {item.ok ? '✓' : '⚠'} <Text color="text">{item.text}</Text>
+                  </Text>
+                ))}
+              </Box>
+            )
+          })
         )}
       </Box>
     )
