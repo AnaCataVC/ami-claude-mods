@@ -1,0 +1,17 @@
+{
+  "name": "quota-pace",
+  "version": "0.1.0",
+  "description": "Paces your weekly Claude usage limit across your workdays: shows used vs today's target in the status line and warns once when you pass it",
+  "author": {
+    "name": "Catalina Villalobos"
+  },
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "workdays": {
+      "type": "string",
+      "title": "Workdays",
+      "description": "Days that get a share of the weekly limit, comma-separated (mon,tue,wed,thu,fri,sat,sun)",
+      "default": "mon,tue,wed,thu,fri"
+    }
+  }
+}

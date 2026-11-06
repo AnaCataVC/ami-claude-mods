@@ -1,0 +1,7 @@
+{
+  "name": "orchestrate-plan",
+  "version": "0.2.0",
+  "description": "Live pane with the progress of the nearest plan.md, plus the skill that keeps plan.md in the contract the pane reads",
+  "author": { "name": "Catalina Villalobos" },
+  "types": "./types/index.d.ts"
+}
