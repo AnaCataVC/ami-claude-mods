@@ -17,7 +17,7 @@ async function refresh($: EngineInterface, rateLimits: SessionRateLimit[], setti
   }
 
   const now = new Date(await $.clock.now())
-  const pace = computePace(weekly.percentUsed, new Date(weekly.resetsAt), now, settings.workdays)
+  const pace = computePace(weekly.percentUsed, now, settings.workdays)
   $.ui.status(statusLine(pace, settings.language))
 
   if (pace.usedPercent > pace.targetPercent && (await read($, alertedSlot)) !== pace.slotKey) {

@@ -1,11 +1,9 @@
-const DAY_MS = 24 * 60 * 60 * 1000
-const WINDOW_DAYS = 7
 const DAY_NAMES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
 
 export type Pace = {
   usedPercent: number
   targetPercent: number
-  /** Identifies the current day slot inside the current window, for once-per-day alerts. */
+  /** Identifies the current local day, for once-per-day alerts. */
   slotKey: string
   isWorkday: boolean
 }
@@ -21,31 +19,25 @@ export function parseWorkdays(spec: string): Set<number> {
 }
 
 /**
- * Splits the 7-day window ending at `resetsAt` into seven 24h slots, each named by
- * the local weekday at its midpoint. Every workday slot earns an equal share of 100%;
- * the target is the share of every workday slot started so far, so the budget for
- * a day is available from that day's start.
+ * The target follows the calendar week (Monday first), independent of when the usage window
+ * resets: every workday earns an equal share of 100%, and today's target is the cumulative
+ * share of the workdays from Monday up to and including today. Non-workdays add nothing.
  */
-export function computePace(usedPercent: number, resetsAt: Date, now: Date, workdays: Set<number>): Pace {
-  const windowStart = resetsAt.getTime() - WINDOW_DAYS * DAY_MS
-  const currentSlot = Math.min(WINDOW_DAYS - 1, Math.max(0, Math.floor((now.getTime() - windowStart) / DAY_MS)))
-  // A slot counts as the weekday at its midpoint, the day it mostly covers: labelling by its start
-  // would push the budget of a window resetting mid-afternoon to the following afternoon.
-  const isWorkdaySlot = (slot: number) => workdays.has(new Date(windowStart + slot * DAY_MS + DAY_MS / 2).getDay())
-
-  let workdaySlots = 0
-  let startedWorkdaySlots = 0
-  for (let slot = 0; slot < WINDOW_DAYS; slot++) {
-    if (!isWorkdaySlot(slot)) continue
-    workdaySlots++
-    if (slot <= currentSlot) startedWorkdaySlots++
+export function computePace(usedPercent: number, now: Date, workdays: Set<number>): Pace {
+  const todayIndex = (now.getDay() + 6) % 7
+  let workdayCount = 0
+  let startedWorkdays = 0
+  for (let index = 0; index < 7; index++) {
+    if (!workdays.has((index + 1) % 7)) continue
+    workdayCount++
+    if (index <= todayIndex) startedWorkdays++
   }
 
-  const targetPercent = workdaySlots === 0 ? 100 : Math.round((startedWorkdaySlots / workdaySlots) * 1000) / 10
+  const targetPercent = workdayCount === 0 ? 100 : Math.round((startedWorkdays / workdayCount) * 1000) / 10
   return {
     usedPercent,
     targetPercent,
-    slotKey: `${resetsAt.toISOString()}#${currentSlot}`,
-    isWorkday: isWorkdaySlot(currentSlot),
+    slotKey: `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`,
+    isWorkday: workdays.has(now.getDay()),
   }
 }

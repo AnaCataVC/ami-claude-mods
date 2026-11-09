@@ -16,8 +16,8 @@ On a subscription, Claude reports how much of the 7-day usage window you have us
 ## How it works
 
 - It reads the `seven_day` rate-limit window that the engine already reports. It listens to `session.measure` and does no polling and no network calls.
-- The window runs from `resetsAt − 7 days` to `resetsAt`. It is split into seven 24-hour slots, and each slot counts as the local weekday it mostly covers (the weekday at its midpoint). Because of this, the target is correct even when your window resets mid-week.
-- A workday's share becomes available when its slot starts. Weekend slots add nothing to the target.
+- The target follows the calendar week (Monday first) and does not depend on when your usage window resets. Today's target is the share of the workdays from Monday through today.
+- Weekend days add nothing, so Saturday and Sunday keep Friday's 100%.
 - Outside a subscription, where no weekly window is reported, the mod shows nothing.
 
 ## Configuration
