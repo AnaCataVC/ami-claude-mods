@@ -155,10 +155,18 @@ const barSegments = (items: readonly WorkItem[]) => {
 
 let registryCache: { at: number; sessions: LiveSession[] } | undefined
 
-// One JSON file per live Claude Code process, written by the CLI next to this mod's config dir.
+// One JSON file per live Claude Code process, written by Claude Code (Desktop and CLI alike) in
+// the user's config dir. Resolved from the environment, not from the mod's own location: mods
+// load from any folder, so a path relative to `$.plugin.root` points at the wrong directory.
 const liveSessions = async ($: EngineInterface) => {
   if (registryCache && Date.now() - registryCache.at < REGISTRY_TTL_MS) return registryCache.sessions
-  const dir = `${$.plugin.root}/../../sessions`
+  const [configDir, userProfile, home] = await Promise.all([
+    $.env.get('CLAUDE_CONFIG_DIR'),
+    $.env.get('USERPROFILE'),
+    $.env.get('HOME'),
+  ])
+  const base = configDir ?? `${userProfile ?? home ?? ''}/.claude`
+  const dir = `${base}/sessions`
   const files = (await $.fs.list(dir).catch(() => [])).filter(f => f.kind === 'file' && f.name.endsWith('.json'))
   const texts = await Promise.all(files.map(f => $.fs.read(`${dir}/${f.name}`).catch(() => '')))
   const sessions = texts.map(parseRegistryEntry).filter((s): s is LiveSession => s !== undefined)

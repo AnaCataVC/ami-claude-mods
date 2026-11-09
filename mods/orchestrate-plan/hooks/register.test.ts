@@ -14,15 +14,16 @@ const PLAN = `# Plan X
 const REGISTRY = JSON.stringify({ name: 'P2 · otra cosa', status: 'busy', statusUpdatedAt: 1 })
 
 // Stands in for the engine beneath the mod: cwd listing, the plan, the session registry, gh and the UI.
-function fakeEngine(on: On, lang?: string | 'reject') {
+function fakeEngine(on: On, lang?: string | 'reject', env: Record<string, string> = {}) {
   if (lang === 'reject') {
     on('env.get', async (_$, e) => {
       if ((e as unknown as { name: string }).name === 'CLAUDE_MODS_LANG') throw new Error('env unavailable')
       return { value: undefined } as never
     })
   } else {
-    mock.env(on, lang === undefined ? {} : { CLAUDE_MODS_LANG: lang })
+    mock.env(on, lang === undefined ? env : { ...env, CLAUDE_MODS_LANG: lang })
   }
+  const listed: string[] = []
   const statuses: Array<string | undefined> = []
   const commands: Array<{ name: string; description?: string; argumentHint?: string }> = []
   const processes: string[] = []
@@ -41,13 +42,14 @@ function fakeEngine(on: On, lang?: string | 'reject') {
     return { value: { isRegistered: true } } as never
   })
   on('session.start', async (_$, e) => ({ cwd: e.cwd }) as never)
-  on('fs.list', async (_$, e) =>
-    ({
+  on('fs.list', async (_$, e) => {
+    listed.push(e.path ?? '')
+    return {
       value: e.path?.includes('sessions')
         ? [{ name: '1.json', kind: 'file', size: 1, mtimeMs: 1, isLink: false }]
         : [{ name: 'plan.md', kind: 'file', size: 1, mtimeMs: 1, isLink: false }],
-    }) as never,
-  )
+    } as never
+  })
   on('fs.read', async (_$, e) => ({ value: e.path.endsWith('1.json') ? REGISTRY : PLAN }) as never)
   on('fs.stat', async () => ({ value: { kind: 'file', size: 1, mtimeMs: 1, isLink: false } }) as never)
   on('ui.open', async () => ({ value: { isPlaced: true } }) as never)
@@ -61,7 +63,7 @@ function fakeEngine(on: On, lang?: string | 'reject') {
     const merged = e.argv[0] === 'gh' && e.argv.includes(PR)
     return { value: { exitCode: merged ? 0 : 1, stdout: merged ? 'MERGED\n' : '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } } as never
   })
-  return { processes, clock, state, statuses, commands }
+  return { processes, clock, state, statuses, commands, listed }
 }
 
 async function runStart($: Parameters<Parameters<typeof test>[1]>[0], on: On, lang?: string) {
@@ -101,6 +103,25 @@ test('a rejecting env.get leaves the mod working in English', async ($, on) => {
   await engine.clock.settle()
   const drifts = engine.state.get('drifts') as Array<{ id: string; reason: string }>
   expect(drifts.map(d => d.id)).toEqual(['P1-d', 'P2'])
+})
+
+// The engine reports Windows paths with backslashes.
+const posix = (paths: readonly string[]) => paths.map(p => p.split('\\').join('/'))
+
+// Mods load from any folder, so the registry must come from the config dir, never from the mod's own location.
+test('the session registry is read from the user config dir, not relative to the mod', async ($, on) => {
+  const engine = fakeEngine(on, undefined, { USERPROFILE: 'C:/Users/u' })
+  await $.session.start({ source: 'startup', cwd: 'C:/proj' } as never)
+  await engine.clock.settle()
+  expect(posix(engine.listed)).toContain('C:/Users/u/.claude/sessions')
+})
+
+test('CLAUDE_CONFIG_DIR wins over the home directory for the session registry', async ($, on) => {
+  const engine = fakeEngine(on, undefined, { USERPROFILE: 'C:/Users/u', CLAUDE_CONFIG_DIR: 'D:/cfg' })
+  await $.session.start({ source: 'startup', cwd: 'C:/proj' } as never)
+  await engine.clock.settle()
+  expect(posix(engine.listed)).toContain('D:/cfg/sessions')
+  expect(posix(engine.listed)).not.toContain('C:/Users/u/.claude/sessions')
 })
 
 const PANE = { surface: 'terminal', component: 'Pane', requestId: 'orchestrate-plan', props: {} } as never
