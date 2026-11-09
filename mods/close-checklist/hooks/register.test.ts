@@ -7,7 +7,7 @@ import type { Tracked } from '../types'
 
 const CWD = 'C:\\proj'
 
-function fakeEngine(on: On, processAnswer: (argv: readonly string[]) => { exitCode: number; stdout: string }, lang?: string | 'reject') {
+function fakeEngine(on: On, processAnswer: (argv: readonly string[]) => { exitCode: number; stdout: string }, lang?: string | 'reject', isStateMocked = true) {
   if (lang === 'reject') {
     on('env.get', async (_$, e) => {
       if ((e as unknown as { name: string }).name === 'CLAUDE_MODS_LANG') throw new Error('env unavailable')
@@ -23,12 +23,15 @@ function fakeEngine(on: On, processAnswer: (argv: readonly string[]) => { exitCo
   const processes: string[] = []
   let version = 0
   let toolAnswer: Record<string, unknown> = { result: 'ok' }
-  on('state.get', async (_$, e) => ({ value: { value: store.get(e.key), version } }) as never)
-  on('state.set', async (_$, e) => {
-    store.set(e.key, (e as unknown as { value: unknown }).value)
-    version += 1
-    return { value: { isSet: true, version } } as never
-  })
+  // The engine's own state redraws mounted panes on a write; the Map stand-in cannot.
+  if (isStateMocked) {
+    on('state.get', async (_$, e) => ({ value: { value: store.get(e.key), version } }) as never)
+    on('state.set', async (_$, e) => {
+      store.set(e.key, (e as unknown as { value: unknown }).value)
+      version += 1
+      return { value: { isSet: true, version } } as never
+    })
+  }
   on('session.cwd', async () => ({ value: CWD }) as never)
   on('session.id', async () => ({ value: 'sid' }) as never)
   on('fs.exists', async () => ({ value: false }) as never)
@@ -226,3 +229,24 @@ for (const [lang, other] of [['es', 'en'], ['en', 'es']] as const) {
     if (command!.argumentHint !== undefined) expect(table(other)).not.toContain(command!.argumentHint)
   })
 }
+
+// Pressing the refresh button must recompute the sections and redraw the mounted pane.
+test('pressing the refresh button recomputes and redraws the mounted pane', async ($, on) => {
+  let answer = cleanGit
+  fakeEngine(on, argv => answer(argv), undefined, false)
+  await $.session.start(START)
+  await $.command.run({ command: 'closing-checklist' } as never)
+  const pane = await $.ui.mount({ plugin: 'close-checklist', surface: 'terminal', component: 'Pane', requestId: 'close-checklist', props: {} } as never)
+  expect(await pane.find({ type: 'Text', text: /^\d+ unpushed/ })).toBeUndefined()
+
+  answer = dirtyGit
+  await pane.press({ key: '↻ refresh' })
+
+  let redrawn = await pane.find({ type: 'Text', text: /^2 unpushed/ })
+  for (let attempt = 0; attempt < 20 && redrawn === undefined; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 50))
+    redrawn = await pane.find({ type: 'Text', text: /^2 unpushed/ })
+  }
+  expect(redrawn).toBeDefined()
+  await pane.unmount()
+})

@@ -8,6 +8,7 @@ import {
   lingeringItems,
   shellWriteTargets,
   trackBackground,
+  reconcileBackground,
   trackFile,
   trackResource,
 } from './checklist'
@@ -75,4 +76,10 @@ test('git status without a usable upstream reports unpushed as null', () => {
 
 test('scratchpad path generation', () => {
   expect(scratchpadDir('C:\\T', 'C:\\workspace\\proj', 'sid')).toBe('C:/T/claude/C--workspace-proj/sid/scratchpad')
+})
+
+test('reconcileBackground keeps only the commands still in flight', () => {
+  const started = trackBackground(trackBackground(emptyTracked(), 'npm run build'), 'sleep 600')
+  expect(reconcileBackground(started, ['sleep 600']).background).toEqual(['sleep 600'])
+  expect(reconcileBackground(started, []).background).toEqual([])
 })

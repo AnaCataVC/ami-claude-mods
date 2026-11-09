@@ -129,10 +129,20 @@ export const trackShellWrites = (tracked: Tracked, command: string, cwd: string,
 
 const BACKGROUND_PREVIEW_CHARS = 60
 
-export const trackBackground = (tracked: Tracked, command: string): Tracked => {
+const previewCommand = (command: string): string => {
   const flat = command.replace(/\s+/g, ' ').trim()
-  const preview = flat.length > BACKGROUND_PREVIEW_CHARS ? `${flat.slice(0, BACKGROUND_PREVIEW_CHARS - 1)}…` : flat
-  return { ...tracked, background: addUnique(tracked.background, preview, (a, b) => a === b) }
+  return flat.length > BACKGROUND_PREVIEW_CHARS ? `${flat.slice(0, BACKGROUND_PREVIEW_CHARS - 1)}…` : flat
+}
+
+export const trackBackground = (tracked: Tracked, command: string): Tracked => ({
+  ...tracked,
+  background: addUnique(tracked.background, previewCommand(command), (a, b) => a === b),
+})
+
+/** Drops tracked background commands the engine no longer reports as in flight. */
+export const reconcileBackground = (tracked: Tracked, runningCommands: string[]): Tracked => {
+  const running = new Set(runningCommands.map(previewCommand))
+  return { ...tracked, background: tracked.background.filter(preview => running.has(preview)) }
 }
 
 const WORKTREE_TOOLS: Record<string, boolean> = { EnterWorktree: true, ExitWorktree: false }

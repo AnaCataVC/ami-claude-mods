@@ -7,6 +7,7 @@ import {
   buildSections,
   emptyTracked,
   lingeringItems,
+  reconcileBackground,
   scratchpadDir,
   summarize,
   trackBackground,
@@ -87,6 +88,11 @@ async function refresh($: Engine): Promise<void> {
   await update($, sections, () => fresh)
 }
 
+// The panel is a snapshot; redraw it whenever a turn ends so it never shows state older than the last answer.
+async function refreshIfOpen($: Engine): Promise<void> {
+  if ((await $.ui.panes()).some(pane => pane.id === PANE)) await refresh($)
+}
+
 async function ignoredRoots($: Engine): Promise<string[]> {
   const roots: string[] = []
   const [temp, tmpDir, userProfile, home] = await Promise.all([
@@ -159,6 +165,27 @@ export const register: Register = on => {
       } catch {
         // Session ending
       }
+    }
+    return next(e)
+  })
+
+  on('classic.Stop', async ($, e, next) => {
+    try {
+      // Stop reports the work still in flight, the only signal that a background command ended.
+      const running = e.background_tasks?.flatMap(task => (task.command === undefined ? [] : [task.command]))
+      if (running !== undefined) await update($, tracked, state => reconcileBackground(withDefaults(state), running))
+      await refreshIfOpen($)
+    } catch {
+      // Refreshing is best effort
+    }
+    return next(e)
+  })
+
+  on('turn.complete', async ($, e, next) => {
+    try {
+      await refreshIfOpen($)
+    } catch {
+      // Refreshing is best effort
     }
     return next(e)
   })
