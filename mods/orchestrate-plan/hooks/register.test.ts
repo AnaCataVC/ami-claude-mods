@@ -110,18 +110,22 @@ const posix = (paths: readonly string[]) => paths.map(p => p.split('\\').join('/
 
 // Mods load from any folder, so the registry must come from the config dir, never from the mod's own location.
 test('the session registry is read from the user config dir, not relative to the mod', async ($, on) => {
-  const engine = fakeEngine(on, undefined, { USERPROFILE: 'C:/Users/u' })
+  const engine = fakeEngine(on, undefined, { USERPROFILE: 'test-home', HOME: 'test-home' })
   await $.session.start({ source: 'startup', cwd: 'C:/proj' } as never)
   await engine.clock.settle()
-  expect(posix(engine.listed)).toContain('C:/Users/u/.claude/sessions')
+  expect(posix(engine.listed).some(p => p.endsWith('test-home/.claude/sessions'))).toBe(true)
 })
 
 test('CLAUDE_CONFIG_DIR wins over the home directory for the session registry', async ($, on) => {
-  const engine = fakeEngine(on, undefined, { USERPROFILE: 'C:/Users/u', CLAUDE_CONFIG_DIR: 'D:/cfg' })
+  const engine = fakeEngine(on, undefined, {
+    USERPROFILE: 'test-home',
+    HOME: 'test-home',
+    CLAUDE_CONFIG_DIR: 'test-cfg',
+  })
   await $.session.start({ source: 'startup', cwd: 'C:/proj' } as never)
   await engine.clock.settle()
-  expect(posix(engine.listed)).toContain('D:/cfg/sessions')
-  expect(posix(engine.listed)).not.toContain('C:/Users/u/.claude/sessions')
+  expect(posix(engine.listed).some(p => p.endsWith('test-cfg/sessions'))).toBe(true)
+  expect(posix(engine.listed).some(p => p.endsWith('test-home/.claude/sessions'))).toBe(false)
 })
 
 const PANE = { surface: 'terminal', component: 'Pane', requestId: 'orchestrate-plan', props: {} } as never
