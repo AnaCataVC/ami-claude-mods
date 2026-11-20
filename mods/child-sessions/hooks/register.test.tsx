@@ -23,7 +23,7 @@ const envelope = (from: string, name: string, body = 'done') =>
 
 type Calls = { opens: unknown[]; submits: string[]; copies: string[]; toasts: string[]; state: Map<string, unknown> }
 
-function fakeEngine(on: On, options: { subagentIds?: string[]; dropSubmit?: boolean; lang?: string } = {}): Calls {
+function fakeEngine(on: On, options: { subagentIds?: string[]; dropSubmit?: boolean; lang?: string; failState?: boolean } = {}): Calls {
   if (options.lang === 'reject') {
     on('env.get', async (_$, e) => {
       if ((e as unknown as { name: string }).name === 'CLAUDE_MODS_LANG') throw new Error('env unavailable')
@@ -35,6 +35,7 @@ function fakeEngine(on: On, options: { subagentIds?: string[]; dropSubmit?: bool
   on('session.start', async (_$, e) => ({ cwd: e.cwd }) as never)
   const calls: Calls = { opens: [], submits: [], copies: [], toasts: [], state: new Map() }
   on('state.set', async (_$, e, next) => {
+    if (options.failState) throw new Error('state unavailable')
     calls.state.set(e.key, (e as unknown as { value: unknown }).value)
     return next(e)
   })
@@ -276,6 +277,122 @@ test('a value other than es (es-CL) shows the English view label', async ($, on)
   const ui = await mountBand($, 'terminal')
   expect((await ui.find({ key: `view:${ADDRESS}` }))?.props.label).not.toBe('ver')
   await ui.unmount()
+})
+
+const WRAP_LINE = 'Another Claude session sent a message:'
+const wrapper = (from: string, body = 'body') => `${WRAP_LINE}\n<agent-message from="${from}">\n${body}\n</agent-message>`
+const receiveRaw = ($: TestEngine, origin: unknown, text: string, extra: object = {}) =>
+  $.session.receive({ origin, text, ...extra } as never)
+
+test('B2: an agent-message wrapper with origin from/name records one inbound row the band shows', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer', from: 'X', name: 'N' }, wrapper('X'))
+  const list = rows(calls)
+  expect(list.length).toBe(1)
+  expect(list[0]).toMatchObject({ key: 'X', name: 'N', received: 1, lastDirection: 'in' })
+  expect(waitingPeers(list, {}).map(p => p.key)).toEqual(['X'])
+  for (const surface of SURFACES) {
+    const ui = await mountBand($, surface)
+    expect(await ui.find({ key: 'reply:X' })).toBeDefined()
+    await ui.unmount()
+  }
+})
+
+test('B2: the peer-send-message origin kind is recorded too', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer-send-message', from: 'X', name: 'N' }, wrapper('X'))
+  expect(rows(calls)[0]).toMatchObject({ key: 'X', name: 'N', received: 1 })
+})
+
+test('B2: two messages from the same origin.from make one row with received 2', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer', from: 'X', name: 'N' }, wrapper('X', 'one'))
+  await receiveRaw($, { kind: 'peer', from: 'X', name: 'N' }, wrapper('X', 'two'))
+  expect(rows(calls).length).toBe(1)
+  expect(rows(calls)[0]).toMatchObject({ key: 'X', received: 2 })
+})
+
+test('B3: without origin.name the row is named by the sender', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer', from: 'X' }, wrapper('X'))
+  expect(rows(calls)[0]).toMatchObject({ key: 'X', name: 'X' })
+})
+
+test('B4: without origin.from the sender comes from the agent-message tag', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer' }, wrapper('X'))
+  expect(rows(calls).length).toBe(1)
+  expect(rows(calls)[0]).toMatchObject({ key: 'X', name: 'X' })
+})
+
+test('B4: an empty origin.from with no tag records nothing, with a tag falls back to the tag', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer', from: '' }, 'plain text')
+  expect(rows(calls).length).toBe(0)
+  await receiveRaw($, { kind: 'peer', from: '' }, wrapper('X'))
+  expect(rows(calls).map(p => p.key)).toEqual(['X'])
+})
+
+test('B4: a non-string origin.from is ignored as if absent', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer', from: 5 }, 'plain text')
+  expect(rows(calls).length).toBe(0)
+  await receiveRaw($, { kind: 'peer', from: 5 }, wrapper('X'))
+  expect(rows(calls).map(p => p.key)).toEqual(['X'])
+})
+
+test('B5: the preview and the full text hold the body only, without wrapper or lead line', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer', from: 'X', name: 'N' }, wrapper('X'))
+  expect(rows(calls)[0]?.lastMessage).toBe('body')
+  const body = `line one\n${'y'.repeat(300)}`
+  await receiveRaw($, { kind: 'peer', from: 'Y', name: 'M' }, wrapper('Y', body))
+  const long = rows(calls).find(p => p.key === 'Y')
+  expect(long?.lastMessageFull).toBe(body)
+  for (const text of [long?.lastMessage ?? '', long?.lastMessageFull ?? '']) {
+    expect(text).not.toContain('agent-message')
+    expect(text).not.toContain(WRAP_LINE)
+  }
+})
+
+test('B1: a cross-session-message tag is still recorded from its attributes', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer' }, envelope(ADDRESS, 'Review'))
+  expect(rows(calls)[0]).toMatchObject({ key: ADDRESS, name: 'Review', received: 1 })
+  expect(rows(calls)[0]?.aliases).toEqual(expect.arrayContaining(['Review', 'local_Review', ADDRESS]))
+})
+
+test('B6: tag attributes win over origin from/name', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer', from: 'X', name: 'N' }, envelope(ADDRESS, 'Review'))
+  const list = rows(calls)
+  expect(list.length).toBe(1)
+  expect(list[0]).toMatchObject({ key: ADDRESS, name: 'Review' })
+})
+
+test('B7: a handback report from an own subagent creates no row', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer', from: 'X', name: 'N', handback: true }, wrapper('X'))
+  expect(rows(calls).length).toBe(0)
+})
+
+test('an agent-message tag under a non-peer origin kind creates no row', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'human' }, wrapper('X'))
+  await receiveRaw($, { kind: 'human', from: 'X' }, wrapper('X'))
+  expect(rows(calls).length).toBe(0)
+})
+
+test('an event with agentId is ignored for a wrapper message', async ($, on) => {
+  const calls = fakeEngine(on)
+  await receiveRaw($, { kind: 'peer', from: 'X' }, wrapper('X'), { agentId: 'sub1' })
+  expect(rows(calls).length).toBe(0)
+})
+
+test('B2: a failing state update is swallowed and the message still passes through', async ($, on) => {
+  fakeEngine(on, { failState: true })
+  const result = await receiveRaw($, { kind: 'peer', from: 'X', name: 'N' }, wrapper('X'))
+  expect((result as { text?: string } | undefined)?.text).toBe(wrapper('X'))
 })
 
 test('a rejecting env.get leaves the band working in English', async ($, on) => {

@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import type { Peer } from '../types'
-import { capDismissed, clampLines, fullText, isQuestion, isWaiting, replyInstruction, waitingPeers } from './inbox'
+import { capDismissed, clampLines, fullText, isQuestion, isWaiting, replyInstruction, stripEnvelope, waitingPeers } from './inbox'
 
 const peer = (key: string, lastAt: number, lastDirection: 'in' | 'out', asked = false): Peer =>
   ({ key, name: key, aliases: [key], received: 1, sent: 1, lastAt, lastDirection, asked })
@@ -62,4 +62,21 @@ test('clampLines keeps the first lines and marks the cut', async () => {
 test('the reply instruction names the tool that can reach the peer', () => {
   expect(replyInstruction({ name: 'P3-c', key: 'uds:pipe' })).toContain('SendMessage with to: uds:pipe')
   expect(replyInstruction({ name: 'P3-c', key: 'local_abc' })).toContain('session_id: local_abc')
+})
+
+test('stripEnvelope removes the agent-message tags and the leading sender line', () => {
+  const out = stripEnvelope('Another Claude session sent a message:\n<agent-message from="X">\nbody\n</agent-message>')
+  expect(out.trim()).toBe('body')
+  expect(out).not.toContain('agent-message')
+  expect(out).not.toContain('Another Claude session sent a message:')
+})
+
+test('stripEnvelope keeps body line breaks and still strips the cross-session tag', () => {
+  expect(stripEnvelope('<agent-message from="X">a\nb</agent-message>').trim()).toBe('a\nb')
+  expect(stripEnvelope('<cross-session-message from="a">hola</cross-session-message>').trim()).toBe('hola')
+})
+
+test('stripEnvelope leaves plain text and a mid-text sentence alone', () => {
+  expect(stripEnvelope('plain text').trim()).toBe('plain text')
+  expect(stripEnvelope('he said Another Claude session sent a message: ok')).toContain('Another Claude session sent a message: ok')
 })

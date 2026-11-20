@@ -33,9 +33,25 @@ function attribute(tag: string, name: string): string | undefined {
   return new RegExp(`\\s${name}="([^"]*)"`).exec(tag)?.[1]
 }
 
-function senderOf(text: string): Contact | undefined {
+type Origin = { kind: string; from?: unknown; name?: unknown; handback?: unknown }
+
+function nonEmpty(value: unknown): string | undefined {
+  return typeof value === 'string' && value ? value : undefined
+}
+
+// Peer messages that carry no cross-session tag name their sender in the origin or the
+// agent-message wrapper instead.
+function wrapperSender(text: string, origin: Origin): Contact | undefined {
+  const wrapper = /<agent-message\b[^>]*>/.exec(text)?.[0]
+  const key = nonEmpty(origin.from) ?? (wrapper && attribute(wrapper, 'from')) ?? undefined
+  if (!key) return undefined
+  const name = nonEmpty(origin.name) ?? key
+  return { key, name, aliases: [...new Set([key, name])] }
+}
+
+function senderOf(text: string, origin: Origin): Contact | undefined {
   const tag = /<cross-session-message\b[^>]*>/.exec(text)?.[0]
-  if (!tag) return undefined
+  if (!tag) return wrapperSender(text, origin)
   const address = attribute(tag, 'from')
   const name = attribute(tag, 'from-name')
   const sessionId = attribute(tag, 'from-session')
@@ -193,8 +209,9 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('session.receive', async ($, e, next) => {
-    const origin = e.origin as { kind: string }
-    const sender = PEER_ORIGINS.has(origin.kind) && e.agentId === undefined ? senderOf(e.text) : undefined
+    const origin = e.origin as Origin
+    const isPeer = PEER_ORIGINS.has(origin.kind) && e.agentId === undefined && origin.handback !== true
+    const sender = isPeer ? senderOf(e.text, origin) : undefined
     if (sender) await recordContact($, sender, 'in', e.text)
     return next(e)
   }).catch(($, e, next) => next(e))

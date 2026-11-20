@@ -7,14 +7,15 @@ export const MAX_SUBAGENT_NAMES = 100
 const PREVIEW_CHARS = 80
 const FULL_MESSAGE_CHARS = 4000
 const SESSION_ADDRESS = /^uds:/
-const ENVELOPE_TAG = /<\/?cross-session-message\b[^>]*>/g
+const ENVELOPE_TAG = /<\/?(?:cross-session-message|agent-message)\b[^>]*>/g
+const ENVELOPE_INTRO = /^\s*Another Claude session sent a message:[^\S\r\n]*\r?\n?/
 const QUESTION = /¿|\?(?=$|[\s)\]"'”])|\b(duda|pregunta|decide|decidir|decides|confirma|confirmar|confirmas|should (i|we)|do you want|would you like|want me to|please confirm|need your (decision|input|approval))\b/i
 
 export type Contact = { key: string; name: string; aliases: string[] }
 export type Dismissed = Record<string, number>
 
 export function stripEnvelope(text: string): string {
-  return text.replace(ENVELOPE_TAG, '')
+  return text.replace(ENVELOPE_INTRO, '').replace(ENVELOPE_TAG, '')
 }
 
 export function isQuestion(text: string): boolean {

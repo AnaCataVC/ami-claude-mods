@@ -4,7 +4,7 @@ Cross-session and inter-agent message inbox rendered above the prompt for Claude
 
 ## Overview
 
-In multi-agent environments or cross-session orchestrations, child sessions and peer agents frequently send status updates or ask blocking questions. `child-sessions` intercepts inbound cross-session messages, prioritizes pending questions, and renders an actionable inbox directly above the prompt.
+In multi-agent environments or cross-session orchestrations, child sessions and peer agents frequently send status updates or ask blocking questions. `child-sessions` intercepts inbound cross-session messages, prioritizes pending questions, and renders an actionable inbox directly above the prompt. Senders are read from the message origin or the `<agent-message>` wrapper when there is no cross-session tag.
 
 ## Features
 
