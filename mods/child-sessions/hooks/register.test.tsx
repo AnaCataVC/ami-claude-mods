@@ -231,6 +231,18 @@ test('es: each row replies by its digit and only the top row takes letter hotkey
   await ui.unmount()
 })
 
+test('outside the terminal the band advertises no keyboard shortcuts', async ($, on) => {
+  fakeEngine(on, { lang: 'es' })
+  await startSession($)
+  await receive($, ADDRESS, 'Review', 'Should I wait or deploy?')
+  const ui = await mountBand($, 'desktop')
+  expect(await ui.find({ key: `reply:${ADDRESS}` })).toBeDefined()
+  expect((await ui.find({ key: `reply:${ADDRESS}` }))?.props.hotkey).toBeUndefined()
+  expect((await ui.find({ key: `done:${ADDRESS}` }))?.props.hotkey).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /ctrl\+x tab/ })).toBeUndefined()
+  await ui.unmount()
+})
+
 test('dismiss removes the peer from the band', async ($, on) => {
   const calls = fakeEngine(on)
   await receive($, ADDRESS, 'Review', 'Should I proceed?')

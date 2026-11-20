@@ -134,6 +134,8 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
   if (waiting.length === 0) return undefined
   const open = new Set(await read($, expanded))
   const extra = waiting.length - BAND_MAX_LINES
+  // Only the terminal routes keys to the band; elsewhere the Buttons are clicked.
+  const hasKeys = e.surface === 'terminal'
   return (
     <Box
       flexDirection="column"
@@ -146,21 +148,17 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
         const full = peer.lastMessageFull ?? peer.lastMessage
         const isOpen = open.has(peer.key) && !!full
         const isTop = index === 0
+        const hasLetters = hasKeys && isTop
         return (
           <Box key={peer.key} flexDirection="column">
-            <Box>
-              <Box flexGrow={1}>
-                <Text wrap="truncate-end" color={peer.asked ? 'warning' : undefined} weight={peer.asked ? 'bold' : undefined}>
-                  {peer.asked ? '? ' : '↙ '}
-                  {peer.name}
-                  <Text dimColor> · {ago(peer.lastAt, current)}{peer.lastMessage ? ` · “${peer.lastMessage}”` : ''}</Text>
-                </Text>
-              </Box>
+            {/* Buttons lead the row: a preview that a surface does not shrink would push
+               trailing Buttons past the band's edge. */}
+            <Box gap={1}>
               <Box gap={1} flexShrink={0}>
                 <Button
                   key={`reply:${peer.key}`}
                   label={text.reply}
-                  hotkey={String(index + 1)}
+                  {...(hasKeys ? { hotkey: String(index + 1) } : {})}
                   plain
                   {...(isTop ? { autoFocus: true as const } : {})}
                   onPress={press => reply($, peer, press.surface)}
@@ -169,7 +167,7 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
                   <Button
                     key={`view:${peer.key}`}
                     label={isOpen ? text.hide : text.view}
-                    {...(isTop ? { hotkey: 'v' } : {})}
+                    {...(hasLetters ? { hotkey: 'v' } : {})}
                     plain
                     dimColor
                     onPress={() => toggleExpanded($, peer)}
@@ -178,11 +176,18 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
                 <Button
                   key={`done:${peer.key}`}
                   label={text.dismiss}
-                  {...(isTop ? { hotkey: 'd' } : {})}
+                  {...(hasLetters ? { hotkey: 'd' } : {})}
                   plain
                   dimColor
                   onPress={() => dismiss($, peer)}
                 />
+              </Box>
+              <Box flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
+                <Text wrap="truncate-end" color={peer.asked ? 'warning' : undefined} weight={peer.asked ? 'bold' : undefined}>
+                  {peer.asked ? '? ' : '↙ '}
+                  {peer.name}
+                  <Text dimColor> · {ago(peer.lastAt, current)}{peer.lastMessage ? ` · “${peer.lastMessage}”` : ''}</Text>
+                </Text>
               </Box>
             </Box>
             {isOpen && (
@@ -197,7 +202,7 @@ async function renderBand($: Engine, e: Parameters<Engine['ui']['resolve']>[0]) 
       {/* A bare digit in an empty composer presses a band Button, so digits reach every row
          without focusing the band; letters only work once ctrl+x tab focuses it, so only
          the top row gets them to avoid clashes. */}
-      <Text dimColor wrap="truncate-end">{text.keyboardHint}</Text>
+      {hasKeys && <Text dimColor wrap="truncate-end">{text.keyboardHint}</Text>}
     </Box>
   )
 }
