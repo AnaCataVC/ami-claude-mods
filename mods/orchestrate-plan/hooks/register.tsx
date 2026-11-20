@@ -378,11 +378,12 @@ export const register: Register = on => {
           {freed.length > 0 && (
             <Text color="subtle" wrap="truncate-end">{text.unblocksLabels(freed.map(labelOf).join(', '))}</Text>
           )}
-          {prompt && item.status === 'listo' && (
+          {/* An open prompt keeps its toggle after the item leaves 'listo', so it can always be collapsed. */}
+          {prompt && (item.status === 'listo' || isPromptOpen) && (
             <Box paddingLeft={2} flexDirection="row">
               <Button plain dimColor label={isPromptOpen ? text.hidePrompt : text.showPrompt} onPress={() => togglePrompt(item.id)} />
               <Text>  </Text>
-              {!canLaunch(launched[item.id], now) ? (
+              {item.status !== 'listo' ? null : !canLaunch(launched[item.id], now) ? (
                 <Text dimColor>{text.launchRequested(ago(launched[item.id] ?? now, now, current))}</Text>
               ) : confirming === item.id ? (
                 <Box flexDirection="row">
