@@ -36,6 +36,15 @@ test('a session names an item exactly: the id alone or followed by a separator, 
   expect(namesItem('revisar P1-b', 'P1-b')).toBe(false)
 })
 
+test('a session covering several rows names each id before the separator', () => {
+  expect(namesItem('E2.2 + E3.1 · Carga pick y plantilla', 'E2.2')).toBe(true)
+  expect(namesItem('E2.2 + E3.1 · Carga pick y plantilla', 'E3.1')).toBe(true)
+  expect(namesItem('F1 + F2 + F4 · Resolución por nombre', 'F2')).toBe(true)
+  expect(namesItem('F1 + F2 + F4 · Resolución por nombre', 'F3')).toBe(false)
+  expect(namesItem('E2.2 + E3.1 · Carga pick y plantilla', 'E3')).toBe(false)
+  expect(namesItem('F1 · Tags + F2 en el nombre', 'F2')).toBe(false)
+})
+
 test('a registry entry needs a name; statusUpdatedAt falls back to updatedAt', () => {
   expect(parseRegistryEntry('{"name":" P3-c · x ","status":"idle","statusUpdatedAt":5}')).toEqual({ name: 'P3-c · x', status: 'idle', statusUpdatedAt: 5 })
   expect(parseRegistryEntry('{"name":"a","status":"busy","updatedAt":7}')).toEqual({ name: 'a', status: 'busy', statusUpdatedAt: 7 })

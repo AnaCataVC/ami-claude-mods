@@ -24,8 +24,11 @@ export const parseRegistryEntry = (text: string): LiveSession | undefined => {
 }
 
 // Exact: the name is the id, or starts with it followed by a separator, so P1-b never claims P1-b1.
+// One session covering several rows lists their ids joined by "+" before the separator ("E2.2 + E3.1 · …").
 export const namesItem = (sessionName: string, id: string) =>
-  sessionName === id || (sessionName.startsWith(id) && /^[\s·:—]/.test(sessionName.slice(id.length)))
+  sessionName === id ||
+  (sessionName.startsWith(id) && /^[\s·:—]/.test(sessionName.slice(id.length))) ||
+  sessionName.split(/[·:—]/)[0].split('+').some(part => part.trim() === id)
 
 export const ago = (since: number, now: number, lang: Lang = 'en') => {
   const text = t(lang)
