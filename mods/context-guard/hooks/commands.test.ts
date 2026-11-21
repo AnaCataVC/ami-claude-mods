@@ -154,3 +154,66 @@ test('cmd /c unwraps quoted chained commands before evaluating segments', () => 
   expect(deny('cmd.exe /c "cd C:\\personal\\code\\repo && git commit -m x"', OUTSIDE)).toContain('commits')
   expect(deny('cmd /c "git status && git diff"')).toBeUndefined()
 })
+
+const KUBE = 'kubectl without --context'
+
+test('Q1: separator inside single quotes does not start a new segment', () => {
+  for (const sep of [';', '|', '&&', '||']) {
+    expect(deny(`echo 'a${sep} kubectl get pods'`, WORK)).toBeUndefined()
+  }
+})
+
+test('Q2: separator inside double quotes does not start a new segment', () => {
+  for (const sep of [';', '|', '&&', '||']) {
+    expect(deny(`echo "x ${sep} kubectl get pods"`, WORK)).toBeUndefined()
+  }
+})
+
+test('Q3: unquoted separator followed by bare kubectl is denied', () => {
+  expect(deny('echo hi; kubectl get pods', WORK)).toContain(KUBE)
+  expect(deny('echo hi | kubectl get pods', WORK)).toContain(KUBE)
+  expect(deny('echo hi && kubectl get pods', WORK)).toContain(KUBE)
+  expect(deny('echo hi || kubectl get pods', WORK)).toContain(KUBE)
+})
+
+test('Q4: unquoted separator followed by kubectl with --context is allowed', () => {
+  expect(deny('echo hi; kubectl --context prod get pods', WORK)).toBeUndefined()
+})
+
+test('Q5: quote awareness does not weaken git rules', () => {
+  expect(deny('echo "a; b" && git commit -m x')).toContain('commits')
+  expect(deny("echo 'a | b'; git commit -m x")).toContain('commits')
+})
+
+test('Q6: bash: backslash-escaped double quote does not close a double-quoted string', () => {
+  expect(denyCommand('echo "a \\" ; kubectl get pods"', WORK, CFG, 'bash')).toBeUndefined()
+})
+
+test('Q7: powershell: backtick-escaped double quote does not close a double-quoted string', () => {
+  expect(denyCommand('echo "a `" ; kubectl get pods"', WORK, CFG, 'powershell')).toBeUndefined()
+})
+
+test('B9: powershell: backslash is not an escape, a quoted path ending in backslash closes normally', () => {
+  expect(denyCommand('cd "C:\\dir\\"; kubectl get pods', WORK, CFG, 'powershell')).toContain(KUBE)
+})
+
+test('B10: shell omitted: neither backslash nor backtick escapes (fail closed)', () => {
+  expect(denyCommand('echo "a \\" ; kubectl get pods"', WORK, CFG)).toContain(KUBE)
+  expect(denyCommand('echo "a `" ; kubectl get pods"', WORK, CFG)).toContain(KUBE)
+})
+
+test('Q8: doubled single quote stays inside a single-quoted string', () => {
+  expect(deny("echo 'it''s; kubectl get pods'", WORK)).toBeUndefined()
+})
+
+test('Q edge: unbalanced quote yields undefined', () => {
+  expect(deny("echo 'abc; kubectl get pods", WORK)).toBeUndefined()
+})
+
+test('Q edge: backslash is literal inside single quotes', () => {
+  expect(deny("echo 'a\\'; kubectl get pods", WORK)).toContain(KUBE)
+})
+
+test('Q edge: separator glued to a closing quote is still a separator', () => {
+  expect(deny('echo "a";kubectl get pods', WORK)).toContain(KUBE)
+})

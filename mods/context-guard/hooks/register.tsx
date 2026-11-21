@@ -100,7 +100,7 @@ export const register: Register = on => {
   for (const tool of ['Bash', 'PowerShell'] as const) {
     on('tool.call', { tool }, async ($, e, next) => {
       const config = await read($, configAtom) ?? undefined
-      const reason = denyCommand(e.command, await $.session.cwd(), config)
+      const reason = denyCommand(e.command, await $.session.cwd(), config, tool === 'Bash' ? 'bash' : 'powershell')
       if (reason !== undefined) return { deny: reason }
       const ran = await next(e)
       await refresh($, isContextCommand(e.command)).catch(() => undefined)

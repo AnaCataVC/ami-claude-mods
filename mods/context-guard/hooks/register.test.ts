@@ -30,7 +30,19 @@ test('allows kubectl with explicit context flag', async ($, on) => {
   expect(result.deny).toBeUndefined()
 })
 
-const PROFILE_CONFIG = JSON.stringify({
+test('B11: Bash tool calls use bash escape rules', async ($, on) => {
+  fakeEngine(on)
+  const result = await $.tool.call({ tool: 'Bash', command: 'echo "a \\" ; kubectl get pods"' } as never)
+  expect(result.deny).toBeUndefined()
+})
+
+test('B11: PowerShell tool calls use PowerShell escape rules', async ($, on) => {
+  fakeEngine(on)
+  const result = await $.tool.call({ tool: 'PowerShell', command: 'cd "C:\\dir\\"; kubectl get pods' } as never)
+  expect(result.deny).toContain('--context')
+})
+
+const PROFILE_CONFIG =JSON.stringify({
   profiles: [{ path: 'C:/work/projects', expectedGhUser: 'work-dev', label: 'Work' }],
   warnProductionKube: true,
 })

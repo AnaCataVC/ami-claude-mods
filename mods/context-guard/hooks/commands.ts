@@ -84,7 +84,14 @@ function forbiddenGit(call: GitCall): string | undefined {
 
 const unquote = (text: string): string => text.trim().replace(/^["']/, '').replace(/["']$/, '')
 
-function splitSegments(command: string): string[] {
+type Shell = 'bash' | 'powershell'
+
+// Escape char inside double quotes per shell; unknown shell treats none as escape so the guard fails closed.
+const escapeChar = (shell?: Shell): string | undefined =>
+  shell === 'bash' ? '\\' : shell === 'powershell' ? '`' : undefined
+
+function splitSegments(command: string, shell?: Shell): string[] {
+  const escape = escapeChar(shell)
   const segments: string[] = []
   let quote: '"' | "'" | null = null
   let start = 0
@@ -92,7 +99,9 @@ function splitSegments(command: string): string[] {
   for (let i = 0; i < command.length; i++) {
     const ch = command[i]!
     if (quote !== null) {
-      if (ch === quote) quote = null
+      // The escape applies only inside double quotes; single quotes are literal.
+      if (quote === '"' && ch === escape) i++
+      else if (ch === quote) quote = null
       continue
     }
     if (ch === '"' || ch === "'") {
@@ -113,18 +122,18 @@ function splitSegments(command: string): string[] {
   return segments
 }
 
-function evaluate(command: string, startDir: string, config?: ContextGuardConfig): string | undefined {
+function evaluate(command: string, startDir: string, config?: ContextGuardConfig, shell?: Shell): string | undefined {
   const requireExplicitKube = config?.requireExplicitKubeContext ?? true
   let dir = startDir
 
-  for (const segment of splitSegments(command)) {
+  for (const segment of splitSegments(command, shell)) {
     const raw = segment.trim()
     const tokens = normalizeProgram(tokenize(raw))
     const program = tokens[0]
     const first = tokens[1]
     if (isProgram(program, 'cmd') && first?.toLowerCase() === '/c') {
       const wrapped = CMD_WRAPPER.exec(raw)
-      const reason = wrapped ? evaluate(unquote(wrapped[1]!), dir, config) : undefined
+      const reason = wrapped ? evaluate(unquote(wrapped[1]!), dir, config, shell): undefined
       if (reason !== undefined) return reason
     } else if ((program === 'cd' || program === 'set-location') && first !== undefined && ABSOLUTE_PATH.test(first)) {
       dir = first
@@ -142,6 +151,6 @@ function evaluate(command: string, startDir: string, config?: ContextGuardConfig
   return undefined
 }
 
-export function denyCommand(command: string, cwd: string, config?: ContextGuardConfig): string | undefined {
-  return evaluate(command, cwd, config)
+export function denyCommand(command: string, cwd: string, config?: ContextGuardConfig, shell?: Shell): string | undefined {
+  return evaluate(command, cwd, config, shell)
 }
