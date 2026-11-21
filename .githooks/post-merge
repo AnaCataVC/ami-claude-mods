@@ -1,0 +1,4 @@
+#!/bin/sh
+# Sync updated mods to ~/.claude/mods/ after git pull / merge
+echo "==> Syncing updated mods to ~/.claude/mods/..."
+npm run install-mods
