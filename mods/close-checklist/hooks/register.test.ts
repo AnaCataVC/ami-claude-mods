@@ -119,6 +119,31 @@ test('a Bash call that ran is tracked; a denied or failed one is not', async ($,
   expect(engine.tracked()?.containers).toEqual([{ name: 'pg', image: 'postgres' }])
 })
 
+test('a background command is listed until its task notification says it ended', async ($, on) => {
+  const engine = fakeEngine(on, cleanGit)
+  on('prompt.submit', async (_$, e) => ({ text: e.text }) as never)
+  engine.answerToolWith({ result: { stdout: '', stderr: '', interrupted: false, backgroundTaskId: 'bg1' } })
+  await $.tool.call({ tool: 'Bash', command: 'sleep 5', run_in_background: true } as never)
+  expect(engine.tracked()?.background).toEqual(['sleep 5'])
+
+  const notice = '<task-notification><task-id>bg1</task-id><status>completed</status></task-notification>'
+  await $.prompt.submit({ text: notice, isMeta: true, origin: { kind: 'composer' } } as never)
+  expect(engine.tracked()?.background).toEqual(['sleep 5'])
+
+  await $.prompt.submit({ text: notice, isMeta: true, origin: { kind: 'task-notification' } } as never)
+  expect(engine.tracked()?.background).toEqual([])
+})
+
+test('a background command whose result carries no task id stays listed after an unrelated notification', async ($, on) => {
+  const engine = fakeEngine(on, cleanGit)
+  on('prompt.submit', async (_$, e) => ({ text: e.text }) as never)
+  engine.answerToolWith({ result: 'ok' })
+  await $.tool.call({ tool: 'Bash', command: 'sleep 9', run_in_background: true } as never)
+  const notice = '<task-notification><task-id>zz</task-id><status>completed</status></task-notification>'
+  await $.prompt.submit({ text: notice, isMeta: true, origin: { kind: 'task-notification' } } as never)
+  expect(engine.tracked()?.background).toEqual(['sleep 9'])
+})
+
 test('tools other than Bash, PowerShell and Write are not tracked', async ($, on) => {
   const engine = fakeEngine(on, cleanGit)
   await $.tool.call({ tool: 'Read', command: 'docker run -d --name pg postgres' } as never)

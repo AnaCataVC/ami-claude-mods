@@ -8,6 +8,7 @@ export const emptyTracked = (): Tracked => ({
   volumes: [],
   files: [],
   background: [],
+  backgroundTasks: {},
   isWorktreeOpen: false,
   schedules: 0,
 })
@@ -134,16 +135,37 @@ const previewCommand = (command: string): string => {
   return flat.length > BACKGROUND_PREVIEW_CHARS ? `${flat.slice(0, BACKGROUND_PREVIEW_CHARS - 1)}…` : flat
 }
 
-export const trackBackground = (tracked: Tracked, command: string): Tracked => ({
-  ...tracked,
-  background: addUnique(tracked.background, previewCommand(command), (a, b) => a === b),
-})
-
-/** Drops tracked background commands the engine no longer reports as in flight. */
-export const reconcileBackground = (tracked: Tracked, runningCommands: string[]): Tracked => {
-  const running = new Set(runningCommands.map(previewCommand))
-  return { ...tracked, background: tracked.background.filter(preview => running.has(preview)) }
+export const trackBackground = (tracked: Tracked, command: string, taskId?: string): Tracked => {
+  const preview = previewCommand(command)
+  return {
+    ...tracked,
+    background: addUnique(tracked.background, preview, (a, b) => a === b),
+    backgroundTasks: taskId === undefined ? tracked.backgroundTasks : { ...tracked.backgroundTasks, [taskId]: preview },
+  }
 }
+
+/** Drops a finished task's command once no other unfinished task runs the same one. */
+export const finishBackground = (tracked: Tracked, taskId: string): Tracked => {
+  const preview = tracked.backgroundTasks[taskId]
+  if (preview === undefined) return tracked
+  const { [taskId]: _finished, ...rest } = tracked.backgroundTasks
+  const isStillRunning = Object.values(rest).includes(preview)
+  return {
+    ...tracked,
+    backgroundTasks: rest,
+    background: isStillRunning ? tracked.background : tracked.background.filter(one => one !== preview),
+  }
+}
+
+const ENDED_STATUSES = new Set(['completed', 'failed', 'killed'])
+
+/** Ids of the tasks a task-notification prompt reports as ended. */
+export const finishedTaskIds = (text: string): string[] =>
+  [...text.matchAll(/<task-notification>([\s\S]*?)<\/task-notification>/g)].flatMap(([, body]) => {
+    const id = /<task-id>\s*([^<]+?)\s*<\/task-id>/.exec(body!)?.[1]
+    const status = /<status>\s*([^<]+?)\s*<\/status>/.exec(body!)?.[1]
+    return id !== undefined && status !== undefined && ENDED_STATUSES.has(status) ? [id] : []
+  })
 
 const WORKTREE_TOOLS: Record<string, boolean> = { EnterWorktree: true, ExitWorktree: false }
 const SCHEDULE_CREATE = new Set(['CronCreate', 'mcp__scheduled-tasks__create_scheduled_task'])

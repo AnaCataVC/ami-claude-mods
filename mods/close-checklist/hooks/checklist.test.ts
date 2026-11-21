@@ -8,7 +8,8 @@ import {
   lingeringItems,
   shellWriteTargets,
   trackBackground,
-  reconcileBackground,
+  finishBackground,
+  finishedTaskIds,
   trackFile,
   trackResource,
 } from './checklist'
@@ -78,8 +79,28 @@ test('scratchpad path generation', () => {
   expect(scratchpadDir('C:\\T', 'C:\\workspace\\proj', 'sid')).toBe('C:/T/claude/C--workspace-proj/sid/scratchpad')
 })
 
-test('reconcileBackground keeps only the commands still in flight', () => {
-  const started = trackBackground(trackBackground(emptyTracked(), 'npm run build'), 'sleep 600')
-  expect(reconcileBackground(started, ['sleep 600']).background).toEqual(['sleep 600'])
-  expect(reconcileBackground(started, []).background).toEqual([])
+test('finishBackground drops only the finished task, by its id', () => {
+  const started = trackBackground(trackBackground(emptyTracked(), 'npm run build', 'b1'), 'sleep 600', 's1')
+  const done = finishBackground(started, 'b1')
+  expect(done.background).toEqual(['sleep 600'])
+  expect(finishBackground(done, 'unknown').background).toEqual(['sleep 600'])
+})
+
+test('two runs of the same command stay listed until both finished', () => {
+  const started = trackBackground(trackBackground(emptyTracked(), 'npm test', 'a'), 'npm test', 'b')
+  expect(finishBackground(started, 'a').background).toEqual(['npm test'])
+  expect(finishBackground(finishBackground(started, 'a'), 'b').background).toEqual([])
+})
+
+test('a command without a task id is kept: nothing can name it finished', () => {
+  expect(finishBackground(trackBackground(emptyTracked(), 'sleep 600'), 'x').background).toEqual(['sleep 600'])
+})
+
+test('finishedTaskIds reads ended tasks from notification text and skips running ones', () => {
+  const text =
+    '<task-notification>\n<task-id>b1</task-id>\n<status>completed</status>\n</task-notification>' +
+    '<task-notification><task-id>b2</task-id><status>running</status></task-notification>' +
+    '<task-notification><task-id>b3</task-id><status>killed</status></task-notification>'
+  expect(finishedTaskIds(text)).toEqual(['b1', 'b3'])
+  expect(finishedTaskIds('plain prompt')).toEqual([])
 })

@@ -12,8 +12,10 @@ export type Tracked = {
   composes: ComposeProject[]
   volumes: string[]
   files: string[]
-  // Commands launched with run_in_background: the session cannot tell when they end.
+  // Commands running in the background, listed until their task notification reports them ended.
   background: string[]
+  // Task id from the tool result → the command it ran; a command without an id is never reported ended.
+  backgroundTasks: Record<string, string>
   isWorktreeOpen: boolean
   // Scheduled tasks and crons created and not deleted by this session.
   schedules: number

@@ -6,8 +6,9 @@ import {
   TRACKED_RESOURCE_TOOLS,
   buildSections,
   emptyTracked,
+  finishBackground,
+  finishedTaskIds,
   lingeringItems,
-  reconcileBackground,
   scratchpadDir,
   summarize,
   trackBackground,
@@ -108,7 +109,13 @@ async function ignoredRoots($: Engine): Promise<string[]> {
   return roots
 }
 
-async function trackToolCall($: Engine, e: ToolCallInput): Promise<void> {
+// Set on a Bash or PowerShell result whose command went to the background (run_in_background or Ctrl+B).
+const backgroundTaskId = (result: unknown): string | undefined => {
+  const id = (result as { backgroundTaskId?: unknown } | null)?.backgroundTaskId
+  return typeof id === 'string' ? id : undefined
+}
+
+async function trackToolCall($: Engine, e: ToolCallInput, taskId: string | undefined): Promise<void> {
   const cwd = (await $.session.cwd()) as string
   const input = e as unknown as Record<string, unknown>
   if (FILE_TOOLS.has(e.tool)) {
@@ -120,7 +127,7 @@ async function trackToolCall($: Engine, e: ToolCallInput): Promise<void> {
     const command = String(input.command ?? '')
     await update($, tracked, state => {
       const next = trackShellWrites(trackCommand(withDefaults(state), command, cwd), command, cwd, roots)
-      return input.run_in_background === true ? trackBackground(next, command) : next
+      return input.run_in_background === true || taskId !== undefined ? trackBackground(next, command, taskId) : next
     })
   } else {
     await update($, tracked, state => trackResource(withDefaults(state), e.tool))
@@ -148,7 +155,7 @@ export const register: Register = on => {
       const result = await next(e)
       if (result.deny === undefined && !result.isError) {
         try {
-          await trackToolCall($, e)
+          await trackToolCall($, e, SHELL_TOOLS.has(e.tool) ? backgroundTaskId(result.result) : undefined)
         } catch {
           // Tracking is best effort
         }
@@ -169,14 +176,18 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('classic.Stop', async ($, e, next) => {
-    try {
-      // Stop reports the work still in flight, the only signal that a background command ended.
-      const running = e.background_tasks?.flatMap(task => (task.command === undefined ? [] : [task.command]))
-      if (running !== undefined) await update($, tracked, state => reconcileBackground(withDefaults(state), running))
-      await refreshIfOpen($)
-    } catch {
-      // Refreshing is best effort
+  // Not classic.Stop: the built-in sec-default passes that event on past every user-tier hook.
+  on('prompt.submit', async ($, e, next) => {
+    if (e.origin.kind === 'task-notification') {
+      try {
+        const ended = finishedTaskIds(e.text)
+        if (ended.length > 0) {
+          await update($, tracked, state => ended.reduce(finishBackground, withDefaults(state)))
+          await refreshIfOpen($)
+        }
+      } catch {
+        // Tracking is best effort
+      }
     }
     return next(e)
   })
