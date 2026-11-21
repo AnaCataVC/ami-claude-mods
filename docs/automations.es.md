@@ -14,6 +14,7 @@ Las automatizaciones de este repositorio operan a través de tres dominios arqui
 flowchart TD
     subgraph GitOps["GitOps y Ciclo de Vida Git"]
         PrePush[".githooks/pre-push"]
+        PostMerge[".githooks/post-merge"]
         SetupHooks["scripts/setup-hooks.js"]
     end
 
@@ -27,17 +28,20 @@ flowchart TD
         ValidateAll["scripts/validate-all.js (npm run validate)"]
         PackageAll["scripts/package-all.js (npm run package)"]
         InstallMods["scripts/install-mods.js (npm run install-mods)"]
+        ReleaseScript["scripts/release.js (npm run release)"]
     end
 
     subgraph RuntimeHooks["Automatizaciones de Dominio y Hooks en Runtime"]
         EngineBus["Bus del Motor de Claude Code 2.1"]
-        ModInterceptors["6 Plugins Modulares (mods/*)"]
+        ModInterceptors["8 Plugins Modulares (mods/*)"]
     end
 
     PrePush -->|"Ejecuta previo a push"| ValidateAll & TestAll
+    PostMerge -->|"Ejecuta tras pull/merge"| InstallMods
+    ReleaseScript -->|"Valida, sube versión y etiqueta"| ValidateAll & TestAll & RelWork
     CIWork -->|"Valida en push y PR"| ValidateAll & TestAll & PackageAll
     RelWork -->|"Push de tag (v*.*.*)"| PackageAll
-    SetupHooks -->|"Configura core.hooksPath"| PrePush
+    SetupHooks -->|"Configura core.hooksPath"| PrePush & PostMerge
     EngineBus -->|"Intercepción de Eventos"| ModInterceptors
 ```
 
@@ -47,7 +51,7 @@ flowchart TD
 
 ### 1.1. Calidad Continua en Integración (`.github/workflows/ci.yml`)
 - **Eventos Disparadores:** Cada `push` a la rama `main` y todos los `pull_request` con destino a `main`.
-- **Matriz Multiplataforma:** Ejecución paralela en `ubuntu-latest` y `windows-latest`.
+- **Matriz Multiplataforma:** Ejecución paralela en `ubuntu-latest`, `windows-latest` y `macos-latest`.
 - **Etapas del Pipeline:**
   1. Descarga el código fuente mediante `actions/checkout@v4`.
   2. Inicializa Node.js 22 mediante `actions/setup-node@v4`.
@@ -68,6 +72,10 @@ flowchart TD
 - **Configuración:** Activado mediante `npm run prepare` (establece `git config core.hooksPath .githooks`).
 - **Comportamiento:** Ejecuta `npm run validate` y `npm test` localmente antes de permitir que un comando `git push` se complete. Previene regresiones no deseadas en el repositorio remoto.
 
+### 1.4. Sincronización Local Post-Merge (`.githooks/post-merge`)
+- **Configuración:** Activado junto a `pre-push` mediante `npm run prepare`.
+- **Comportamiento:** Ejecuta automáticamente `npm run install-mods` después de un `git pull` o `git merge`, manteniendo `~/.claude/mods/` sincronizado con los últimos cambios del repositorio.
+
 ---
 
 ## 2. Scripts de Desarrollo, Compilación y Mantenimiento
@@ -76,11 +84,12 @@ Todos los scripts son módulos multiplataforma de Node.js ubicados en `scripts/`
 
 | Comando | Script Subyacente | Descripción |
 | :--- | :--- | :--- |
-| `npm test` | [`scripts/test-all.js`](../scripts/test-all.js) | Descubre todos los mods en `mods/` y ejecuta `claude plugin test` de forma secuencial. Finaliza con error si alguna prueba falla. |
-| `npm run validate` | [`scripts/validate-all.js`](../scripts/validate-all.js) | Ejecuta `claude plugin validate` sobre cada mod verificando el manifiesto (`plugin.json`), hooks (`hooks.json`) y contratos de estado atómico. |
+| `npm test` | [`scripts/test-all.js`](../scripts/test-all.js) | Descubre todos los mods en `mods/` y ejecuta `claude plugin test` de forma secuencial. Acepta nombres de mods opcionales para filtrar (`npm test -- <mod>`). Finaliza con error si alguna prueba falla. |
+| `npm run validate` | [`scripts/validate-all.js`](../scripts/validate-all.js) | Ejecuta `claude plugin validate` sobre cada mod verificando el manifiesto (`plugin.json`), hooks (`hooks.json`) y contratos de estado atómico. Acepta nombres de mods opcionales para filtrar (`npm run validate -- <mod>`). |
 | `npm run package` | [`scripts/package-all.js`](../scripts/package-all.js) | Genera archivos `.zip` independientes para cada plugin y un paquete maestro en `releases/` sin dependencias externas usando `tar` nativo. |
 | `npm run install-mods` | [`scripts/install-mods.js`](../scripts/install-mods.js) | Sincroniza todos los mods hacia `$HOME/.claude/mods/` para habilitar la persistencia en Claude Desktop y CLI. Con `--print-env`, imprime la exportación exacta para `CLAUDE_CODE_PLUGIN_DIRS`. |
-| `npm run prepare` | [`scripts/setup-hooks.js`](../scripts/setup-hooks.js) | Configura el repositorio Git para activar `.githooks/` como la ruta de hooks locales. |
+| `npm run release` | [`scripts/release.js`](../scripts/release.js) | Automatiza releases `0.x` (`patch` o `minor`): verifica rama `main` limpia, ejecuta `validate` y `test`, actualiza `package.json`, crea el tag `vX.Y.Z` y hace push con `--follow-tags` (soporta `--dry-run` y `--no-push`). |
+| `npm run prepare` | [`scripts/setup-hooks.js`](../scripts/setup-hooks.js) | Configura el repositorio Git para activar `.githooks/` (`pre-push`, `post-merge`) como la ruta de hooks locales. |
 
 ---
 
