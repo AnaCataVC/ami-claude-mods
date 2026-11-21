@@ -74,7 +74,7 @@ console.log('\n==> Running tests...')
 run('npm', ['test'], { shell: true })
 
 if (dryRun) {
-  console.log(`\n[dry-run] Would run: npm version ${bump} -m "chore(release): bump version to v%s"`)
+  console.log(`\n[dry-run] Would bump package.json to ${targetVersion}, commit "chore(release): bump version to v${targetVersion}", and tag v${targetVersion}`)
   if (!noPush) {
     console.log('[dry-run] Would run: git push --follow-tags')
   }
@@ -82,7 +82,10 @@ if (dryRun) {
 }
 
 console.log(`\n==> Bumping version to v${targetVersion}...`)
-run('npm', ['version', bump, '-m', 'chore(release): bump version to v%s'], { shell: true })
+run('npm', ['version', targetVersion, '--no-git-tag-version'], { shell: true })
+run('git', ['add', 'package.json'])
+run('git', ['commit', '-m', `chore(release): bump version to v${targetVersion}`])
+run('git', ['tag', `v${targetVersion}`])
 
 if (!noPush) {
   console.log('\n==> Pushing commit and tag to origin...')
