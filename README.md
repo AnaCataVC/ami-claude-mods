@@ -175,7 +175,7 @@ Only the exact value `es` (case and surrounding spaces ignored) selects Spanish;
 
 - slash command names (`/closing-checklist`, `/hooks-panel`, `/plan-progress`);
 - text addressed to the model, such as block reasons;
-- the keywords `orchestrate-plan` parses from `plan.md` (`Estado`, `pendiente`, `hecho`...). In English the pane translates the status words it displays, but the file keeps the Spanish keywords.
+- the keywords `orchestrate-plan` accepts in `plan.md` (both Spanish and English headers and status words are always accepted regardless of `CLAUDE_MODS_LANG`; the setting only changes what the pane displays).
 ### Verifying Loaded Mods
 
 Once Claude Desktop or Claude Code starts, confirm that your mods are active:

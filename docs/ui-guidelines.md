@@ -1,7 +1,5 @@
 # UI guidelines
 
-[English](ui-guidelines.md) | [Español](ui-guidelines.es.md)
-
 A small design system so every mod looks and speaks the same way. It covers only what the mods draw: status lines, toasts, the band above the prompt, and side panes. New mods follow it; changes to existing mods move them toward it.
 
 ## 1. Pick the lightest surface
@@ -38,6 +36,7 @@ The host already shows the mod's name in front of the line, so the text never re
 | `✕` | Blocked, failed, over a limit, mismatch | `error` |
 | `○` | Ready to start | `suggestion` |
 | `·` | Pending, not started | `dimColor` |
+| `⊘` | Cancelled, dropped | `inactive` |
 | `●` | Changed recently | `warning` |
 | `?` | Someone asked a question | `warning` |
 | `⛔` | Can block (a capability, not an error) | `warning` |

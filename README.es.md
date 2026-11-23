@@ -175,7 +175,7 @@ Solo el valor exacto `es` (sin importar mayúsculas ni espacios alrededor) activ
 
 - los nombres de los comandos (`/closing-checklist`, `/hooks-panel`, `/plan-progress`);
 - los textos dirigidos al modelo, como los motivos de bloqueo;
-- las palabras que `orchestrate-plan` lee del `plan.md` (`Estado`, `pendiente`, `hecho`...). En inglés el panel traduce los estados que muestra, pero en el archivo se siguen escribiendo en español.
+- las palabras clave que `orchestrate-plan` acepta en `plan.md` (los encabezados y estados tanto en español como en inglés se aceptan siempre sin importar `CLAUDE_MODS_LANG`; la variable solo cambia lo que muestra el panel).
 ### Verificación de Mods Cargados
 
 Una vez iniciado Claude Desktop o Claude Code, confirma que los mods están operando:
