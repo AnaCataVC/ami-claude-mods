@@ -34,7 +34,7 @@ const BAR_WIDTH = 24
 const PROMPT_LINES = 14
 const plan = atom({ plugin: 'orchestrate-plan', key: 'plan' } as const, null)
 const drifts = atom({ plugin: 'orchestrate-plan', key: 'drifts' } as const, [])
-const collapsed = atom({ plugin: 'orchestrate-plan', key: 'collapsed' } as const, ['pendiente'])
+const collapsed = atom({ plugin: 'orchestrate-plan', key: 'collapsed' } as const, ['pendiente', 'cancelado'])
 const openPrompt = atom({ plugin: 'orchestrate-plan', key: 'openPrompt' } as const, null)
 const confirmLaunch = atom({ plugin: 'orchestrate-plan', key: 'confirmLaunch' } as const, null)
 const confirmBatch = atom({ plugin: 'orchestrate-plan', key: 'confirmBatch' } as const, false)
@@ -42,16 +42,19 @@ const launchedAt = atom({ plugin: 'orchestrate-plan', key: 'launchedAt' } as con
 const lang = atom({ plugin: 'orchestrate-plan', key: 'lang' } as const, 'en' as Lang)
 
 // What can be launched now first; what waits on others after; the not-yet-prepared last.
-const GROUPS: readonly PlanStatus[] = ['listo', 'en curso', 'bloqueado', 'pendiente']
+const GROUPS: readonly PlanStatus[] = ['listo', 'en curso', 'bloqueado', 'pendiente', 'cancelado']
 const BAR_ORDER: readonly PlanStatus[] = ['hecho', 'en curso', 'listo', 'bloqueado', 'pendiente']
+// Cancelled rows stay in the plan but are out of the progress denominator.
+const activeItems = (items: readonly WorkItem[]) => items.filter(i => i.status !== 'cancelado')
 const COLOR: Record<PlanStatus, string | undefined> = {
   bloqueado: 'error',
   'en curso': 'warning',
   listo: 'suggestion',
   pendiente: undefined,
   hecho: 'success',
+  cancelado: 'inactive',
 }
-const MARK: Record<PlanStatus, string> = { bloqueado: '✕', 'en curso': '◐', listo: '○', pendiente: '·', hecho: '✓' }
+const MARK: Record<PlanStatus, string> = { bloqueado: '✕', 'en curso': '◐', listo: '○', pendiente: '·', hecho: '✓', cancelado: '⊘' }
 
 // The cwd's newest plan-named .md that holds a work table, else the nearest plan.md above it.
 const findPlan = async ($: EngineInterface) => {
@@ -92,7 +95,7 @@ const loadLang = async ($: EngineInterface) => {
 const summary = (snap: PlanSnapshot, language: Lang) => {
   const done = snap.items.filter(i => i.status === 'hecho').length
   const blocked = snap.items.filter(i => i.status === 'bloqueado').length
-  return t(language).summary(done, snap.items.length, blocked)
+  return t(language).summary(done, activeItems(snap.items).length, blocked)
 }
 
 // The store outlives sessions, so a block's age counts from the first session that saw it.
@@ -141,8 +144,10 @@ const refresh = async ($: EngineInterface, path: string, force = false) => {
 }
 
 // Each status gets a share of the bar proportional to its count; rounding leftovers go to the largest.
-const barSegments = (items: readonly WorkItem[]) => {
-  const total = Math.max(1, items.length)
+export const barSegments = (all: readonly WorkItem[]) => {
+  const items = activeItems(all)
+  if (!items.length) return [{ status: 'pendiente' as const, cells: BAR_WIDTH }]
+  const total = items.length
   const segments = BAR_ORDER.map(status => ({
     status,
     cells: Math.round((items.filter(i => i.status === status).length / total) * BAR_WIDTH),
@@ -209,7 +214,7 @@ const reconcile = async ($: EngineInterface) => {
   try {
     await writeDrifts($)
     const snap = await read($, plan)
-    const urls = snap ? snap.items.filter(i => i.status !== 'hecho').flatMap(i => i.prUrls) : []
+    const urls = snap ? snap.items.filter(i => i.status !== 'hecho' && i.status !== 'cancelado').flatMap(i => i.prUrls) : []
     if (await refreshPrStates($, [...new Set(urls)])) await writeDrifts($)
   } finally {
     isReconciling = false
@@ -328,7 +333,7 @@ export const register: Register = on => {
 
     const count = (s: PlanStatus) => snap.items.filter(i => i.status === s).length
     const done = count('hecho')
-    const percent = Math.round((done / Math.max(1, snap.items.length)) * 100)
+    const percent = Math.round((done / Math.max(1, activeItems(snap.items).length)) * 100)
     const isRecent = (id: string) => now - (snap.changedAt[id] ?? 0) < RECENT_MS
     const next = nextItem(snap.items)
     const labelFor = (id: string) => labelOf(snap.items.find(i => i.id === id) ?? { id })
@@ -348,7 +353,7 @@ export const register: Register = on => {
         <Box flexDirection="column">
           <Text wrap="wrap">
             {isRecent(item.id) ? <Text color="warning">● </Text> : null}
-            <Text weight="bold">{labelOf(item)}</Text>
+            <Text weight="bold" dimColor={item.status === 'cancelado'}>{labelOf(item)}</Text>
           </Text>
           <Text wrap="truncate-end">
             {item.title && <Text dimColor>{item.id}</Text>}
@@ -429,8 +434,8 @@ export const register: Register = on => {
           <Text weight="bold"> {percent}%</Text>
         </Text>
         <Text wrap="wrap">
-          {BAR_ORDER.filter(s => count(s) > 0).map(s => (
-            <Text color={COLOR[s]} dimColor={s === 'pendiente'}>
+          {[...BAR_ORDER, 'cancelado' as const].filter(s => count(s) > 0).map(s => (
+            <Text color={COLOR[s]} dimColor={s === 'pendiente' || s === 'cancelado'}>
               {MARK[s]} {count(s)} {text.status[s]}{'   '}
             </Text>
           ))}

@@ -2,19 +2,36 @@ import type { PlanStatus, WorkItem } from '../types'
 import { t } from './messages'
 import type { Lang } from './messages'
 
-export const STATUSES: readonly PlanStatus[] = ['bloqueado', 'en curso', 'listo', 'pendiente', 'hecho']
+export const STATUSES: readonly PlanStatus[] = ['bloqueado', 'en curso', 'listo', 'pendiente', 'hecho', 'cancelado']
+
+const STATUS_ALIASES: ReadonlyArray<readonly [string, PlanStatus]> = [
+  ['bloqueado', 'bloqueado'],
+  ['blocked', 'bloqueado'],
+  ['en curso', 'en curso'],
+  ['in progress', 'en curso'],
+  ['listo', 'listo'],
+  ['ready', 'listo'],
+  ['pendiente', 'pendiente'],
+  ['pending', 'pendiente'],
+  ['hecho', 'hecho'],
+  ['done', 'hecho'],
+  ['cancelado', 'cancelado'],
+  ['cancelled', 'cancelado'],
+  ['canceled', 'cancelado'],
+]
 
 const cells = (line: string) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim())
 const isSeparator = (row: string[]) => row.every(c => /^:?-+:?$/.test(c))
 const columnOf = (header: string[], names: string[]) =>
   header.findIndex(h => names.includes(h.toLowerCase()))
 
-// Estado cells follow the contract "<status word> — <free note>"; anything else is a violation.
+// Estado/Status cells follow "<status word> — <free note>" in Spanish or English; anything else is a violation.
 export const readStatus = (cell: string): { status?: PlanStatus; note: string } => {
   const lower = cell.toLowerCase()
-  const status = STATUSES.find(s => lower === s || new RegExp(`^${s}(\\s*[—;:,-]|$)`).test(lower))
-  if (!status) return { note: cell }
-  return { status, note: cell.slice(status.length).replace(/^\s*[—;:,-]\s*/, '') }
+  const hit = STATUS_ALIASES.find(([word]) => lower === word || new RegExp(`^${word}(\\s*[—;:,-]|$)`).test(lower))
+  if (!hit) return { note: cell }
+  const [word, status] = hit
+  return { status, note: cell.slice(word.length).replace(/^\s*[—;:,-]\s*/, '') }
 }
 
 // The work table is the first table whose header names an Id and an Estado/Status column,

@@ -15,6 +15,7 @@ const statusEn: Record<PlanStatus, string> = {
   'en curso': 'in progress',
   bloqueado: 'blocked',
   hecho: 'done',
+  cancelado: 'cancelled',
 }
 const statusEs: Record<PlanStatus, string> = {
   pendiente: 'pendiente',
@@ -22,6 +23,7 @@ const statusEs: Record<PlanStatus, string> = {
   'en curso': 'en curso',
   bloqueado: 'bloqueado',
   hecho: 'hecho',
+  cancelado: 'cancelado',
 }
 const pluralEn: Record<PlanStatus, string> = {
   pendiente: 'pending',
@@ -29,6 +31,7 @@ const pluralEn: Record<PlanStatus, string> = {
   'en curso': 'in progress',
   bloqueado: 'blocked',
   hecho: 'done',
+  cancelado: 'cancelled',
 }
 const pluralEs: Record<PlanStatus, string> = {
   pendiente: 'pendientes',
@@ -36,6 +39,7 @@ const pluralEs: Record<PlanStatus, string> = {
   'en curso': 'en curso',
   bloqueado: 'bloqueados',
   hecho: 'hechos',
+  cancelado: 'cancelados',
 }
 
 const en = {

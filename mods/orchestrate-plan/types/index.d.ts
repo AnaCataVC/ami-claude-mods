@@ -1,4 +1,4 @@
-export type PlanStatus = 'pendiente' | 'listo' | 'en curso' | 'bloqueado' | 'hecho'
+export type PlanStatus = 'pendiente' | 'listo' | 'en curso' | 'bloqueado' | 'hecho' | 'cancelado'
 
 export type WorkItem = {
   id: string

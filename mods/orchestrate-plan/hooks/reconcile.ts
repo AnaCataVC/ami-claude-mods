@@ -49,7 +49,7 @@ export const driftOf = (
   lang: Lang = 'en',
 ) => {
   const text = t(lang)
-  if (item.status !== 'hecho' && item.prUrls.some(url => prStates[url] === 'MERGED')) return text.driftMerged
+  if (!isClosed(item.status) && item.prUrls.some(url => prStates[url] === 'MERGED')) return text.driftMerged
   const own = sessions.filter(s => namesItem(s.name, item.id))
   if (item.status === 'en curso') {
     if (!own.length) return text.driftNoSession
@@ -75,26 +75,29 @@ export const detectDrifts = (
     return reason ? [{ id: item.id, reason }] : []
   })
 
+// Terminal states: a cancelled prerequisite no longer holds anything back.
+const isClosed = (status: WorkItem['status']) => status === 'hecho' || status === 'cancelado'
+
 // The open items whose every dependency would be hecho once `item` is.
 export const unblocks = (item: WorkItem, items: readonly WorkItem[]) =>
-  item.status === 'hecho'
+  isClosed(item.status)
     ? []
     : items.filter(other => {
-        if (other.status === 'hecho' || other.id === item.id) return false
+        if (isClosed(other.status) || other.id === item.id) return false
         const deps = dependsOn(other, items)
-        return deps.some(d => d.id === item.id) && deps.every(d => d.id === item.id || d.status === 'hecho')
+        return deps.some(d => d.id === item.id) && deps.every(d => d.id === item.id || isClosed(d.status))
       })
 
-// One line per item that turned hecho between two reads and left others with every dependency done.
+// One line per item that closed between two reads and left others with every dependency closed.
 export const newlyUnblocked = (before: readonly WorkItem[], after: readonly WorkItem[], lang: Lang = 'en') => {
   const previous = new Map(before.map(i => [i.id, i.status]))
   return after
-    .filter(i => i.status === 'hecho' && previous.has(i.id) && previous.get(i.id) !== 'hecho')
+    .filter(i => isClosed(i.status) && previous.has(i.id) && !isClosed(previous.get(i.id)))
     .flatMap(done => {
       const freed = after.filter(other => {
-        if (other.status === 'hecho') return false
+        if (isClosed(other.status)) return false
         const deps = dependsOn(other, after)
-        return deps.some(d => d.id === done.id) && deps.every(d => d.status === 'hecho')
+        return deps.some(d => d.id === done.id) && deps.every(d => isClosed(d.status))
       })
       return freed.length ? [t(lang).unblocked(labelOf(done), freed.map(labelOf).join(', '))] : []
     })
@@ -105,7 +108,7 @@ const bestPrio = (items: readonly WorkItem[]) => [...items].sort((a, b) => prioR
 // The best-prio listo item; with none, the best-prio pendiente whose dependencies are all hecho.
 export const nextItem = (items: readonly WorkItem[]) =>
   bestPrio(items.filter(i => i.status === 'listo')) ??
-  bestPrio(items.filter(i => i.status === 'pendiente' && dependsOn(i, items).every(d => d.status === 'hecho')))
+  bestPrio(items.filter(i => i.status === 'pendiente' && dependsOn(i, items).every(d => isClosed(d.status))))
 
 export type SeenStatus = { status: string; since: number }
 

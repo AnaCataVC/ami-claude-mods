@@ -2,6 +2,7 @@ import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 import { messages } from './messages'
+import { barSegments } from './register'
 
 const PR = 'https://github.com/o/r/pull/7'
 const PLAN = `# Plan X
@@ -176,3 +177,9 @@ for (const [lang, other] of [['es', 'en'], ['en', 'es']] as const) {
     }
   })
 }
+
+test('barSegments renders an empty pending bar when all items are cancelado', () => {
+  expect(barSegments([{ id: 'A', status: 'cancelado', prio: '', waitsOn: '', note: '', prUrls: [] }])).toEqual([
+    { status: 'pendiente', cells: 24 },
+  ])
+})

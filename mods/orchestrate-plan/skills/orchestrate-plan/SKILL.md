@@ -13,12 +13,13 @@ A session that splits work into executor sessions keeps its plan in its working 
 2. **Work table**: one Markdown table whose header has an `Id` column and an `Estado` (or `Status`) column. Optional columns `Nombre` (or `Título`, `Name`), `Prio` and `Espera a` (or `Bloqueo`). The section name and the column order are free.
    - **`Nombre` is what a human reads**: 2-5 words saying what the item delivers ("Rechazo no reintentable"), never the ticket code or a restated id. The pane leads every row, dependency (`espera …`), toast and button with it and shows the id dimmed; a row without one falls back to the words after the id in its `###` prompt heading, then to the bare id. Every row gets one when the plan is built or migrated.
 3. **One row per launchable item**, finished items included. A step repeated when closing every item (notify the reporter, verify in production, update tracking) is not an item: it goes in the plan's intro as a closing condition and inside every launch prompt. A finished item stays as a row with `hecho`; it never moves out of the table. That is what makes the progress bar count items against items.
-4. **Estado starts with exactly one of** `pendiente`, `listo`, `en curso`, `bloqueado`, `hecho`, optionally followed by ` — ` and a free note:
+4. **Estado / Status starts with one of** `pendiente` (`pending`), `listo` (`ready`), `en curso` (`in progress`), `bloqueado` (`blocked`), `hecho` (`done`), `cancelado` (`cancelled` / `canceled`), optionally followed by ` — ` and a free note:
    - `pendiente`: nothing prepared yet.
    - `listo`: prompt or ticket ready, no session launched.
    - `en curso`: an executor session is working on it.
    - `bloqueado`: waiting on something outside the plan; say what in `Espera a`.
    - `hecho`: merged or closed; the note carries the PR link.
+   - `cancelado`: dropped or removed on purpose; the note carries the reason. The row stays in the table like `hecho` (never deleted, never written as `hecho — cancelado`). The pane dims it and leaves it out of the progress total.
    Anything else shows as `?` in the pane, as a contract violation to fix.
 5. **Each id has one status in the whole file.** Prose sections (decisions, context, a `## Hecho` narrative) are allowed but never restate an item's status.
 6. **No live state copied by hand.** PR review state, CI, deployed versions: query them with `gh` when updating the plan, and write only the resulting Estado.

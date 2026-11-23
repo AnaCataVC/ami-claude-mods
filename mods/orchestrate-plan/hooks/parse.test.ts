@@ -171,3 +171,27 @@ test('a prompt heading lends its words after the id as the title', () => {
   expect(titleFromHeading(item('P1-c'), 'P1-c')).toBe(undefined)
   expect(titleFromHeading(item('P1-c'), 'otro encabezado')).toBe(undefined)
 })
+
+test('cancelado is a status: the note after the dash is the reason, not a violation', () => {
+  const plan = parsePlan('| Id | Estado |\n|---|---|\n| X1 | cancelado — ya no aplica |\n| X2 | cancelado |')
+  expect(plan.violations).toEqual([])
+  expect(plan.items[0]).toMatchObject({ status: 'cancelado', note: 'ya no aplica' })
+  expect(plan.items[1]!.status).toBe('cancelado')
+})
+
+test('English status words map to the same canonical PlanStatus values with notes intact', () => {
+  const pairs = [
+    ['pending — waiting', 'pendiente', 'waiting'],
+    ['ready', 'listo', ''],
+    ['in progress — #12', 'en curso', '#12'],
+    ['blocked — CI', 'bloqueado', 'CI'],
+    ['done — merged', 'hecho', 'merged'],
+    ['cancelled — dropped', 'cancelado', 'dropped'],
+    ['canceled — US spelling', 'cancelado', 'US spelling'],
+  ] as const
+  for (const [raw, status, note] of pairs) {
+    const plan = parsePlan(`| Id | Status |\n|---|---|\n| X1 | ${raw} |`)
+    expect(plan.violations).toEqual([])
+    expect(plan.items[0]).toMatchObject({ status, note })
+  }
+})

@@ -135,3 +135,15 @@ test('the first time an id was seen in its status survives until the status chan
     C: { status: '?', since: 50 },
   })
 })
+
+test('cancelado is terminal: no merged-PR drift, not next, and it no longer holds back dependents', () => {
+  const url = 'https://github.com/o/r/pull/1'
+  expect(driftOf(item('X', 'cancelado', { prUrls: [url] }), [], { [url]: 'MERGED' }, NOW)).toBe(undefined)
+  expect(nextItem([item('X', 'cancelado', { prio: 'P0' })])).toBe(undefined)
+  const items = [item('A', 'cancelado'), item('B', 'pendiente', { waitsOn: 'A' })]
+  expect(nextItem(items)?.id).toBe('B')
+  expect(unblocks(items[0]!, items)).toEqual([])
+  const before = [item('A', 'en curso'), item('B', 'pendiente', { waitsOn: 'A' })]
+  expect(newlyUnblocked(before, items)).toHaveLength(1)
+  expect(newlyUnblocked(items, [item('A', 'hecho'), item('B', 'pendiente', { waitsOn: 'A' })])).toEqual([])
+})
