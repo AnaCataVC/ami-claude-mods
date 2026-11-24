@@ -37,12 +37,12 @@ test('a session names an item exactly: the id alone or followed by a separator, 
 })
 
 test('a session covering several rows names each id before the separator', () => {
-  expect(namesItem('E2.2 + E3.1 · Carga pick y plantilla', 'E2.2')).toBe(true)
-  expect(namesItem('E2.2 + E3.1 · Carga pick y plantilla', 'E3.1')).toBe(true)
-  expect(namesItem('F1 + F2 + F4 · Resolución por nombre', 'F2')).toBe(true)
-  expect(namesItem('F1 + F2 + F4 · Resolución por nombre', 'F3')).toBe(false)
-  expect(namesItem('E2.2 + E3.1 · Carga pick y plantilla', 'E3')).toBe(false)
-  expect(namesItem('F1 · Tags + F2 en el nombre', 'F2')).toBe(false)
+  expect(namesItem('T2.2 + T3.1 · Batch import and template', 'T2.2')).toBe(true)
+  expect(namesItem('T2.2 + T3.1 · Batch import and template', 'T3.1')).toBe(true)
+  expect(namesItem('F1 + F2 + F4 · Name resolution', 'F2')).toBe(true)
+  expect(namesItem('F1 + F2 + F4 · Name resolution', 'F3')).toBe(false)
+  expect(namesItem('T2.2 + T3.1 · Batch import and template', 'T3')).toBe(false)
+  expect(namesItem('F1 · Tags + F2 in title', 'F2')).toBe(false)
 })
 
 test('a registry entry needs a name; statusUpdatedAt falls back to updatedAt', () => {

@@ -16,6 +16,14 @@ const mods = readdirSync(modsDir, { withFileTypes: true })
   .filter(d => d.isDirectory())
   .map(d => d.name)
 
+const EXCLUDE_ARGS = [
+  '--exclude=.claude-plugin/types',
+  '--exclude=*.test.ts',
+  '--exclude=*.test.tsx',
+  '--exclude=tsconfig.json',
+  '--exclude=*.tsbuildinfo',
+]
+
 console.log(`Packaging ${mods.length} Claude Code mods (v${version}) into releases/...\n`)
 
 for (const mod of mods) {
@@ -24,7 +32,7 @@ for (const mod of mods) {
   const zipPath = join(releasesDir, zipName)
 
   console.log(`- Packaging [${mod}] -> ${zipName}`)
-  const result = spawnSync('tar', ['-a', '-cf', zipPath, '-C', modSource, '.'], {
+  const result = spawnSync('tar', ['-a', '-cf', zipPath, ...EXCLUDE_ARGS, '-C', modSource, '.'], {
     stdio: 'inherit',
   })
 
@@ -38,7 +46,7 @@ for (const mod of mods) {
 const bundleName = `ami-claude-mods-all-v${version}.zip`
 const bundlePath = join(releasesDir, bundleName)
 console.log(`- Packaging unified bundle -> ${bundleName}`)
-const bundleResult = spawnSync('tar', ['-a', '-cf', bundlePath, '-C', process.cwd(), 'mods'], {
+const bundleResult = spawnSync('tar', ['-a', '-cf', bundlePath, ...EXCLUDE_ARGS, '-C', process.cwd(), 'mods'], {
   stdio: 'inherit',
 })
 

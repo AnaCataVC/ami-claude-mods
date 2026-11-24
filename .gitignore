@@ -15,7 +15,9 @@ build/
 # Personal mod configuration (accounts, paths); keep it in ~/.claude/, never in git
 context-guard.json
 **/.claude/context-guard.json
+orchestrate-plan.local.md
 *.local.json
+*.local.md
 
 # OS and Editor
 .DS_Store

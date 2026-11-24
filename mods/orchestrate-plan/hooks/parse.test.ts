@@ -20,30 +20,30 @@ import {
 const item = (id: string, waitsOn = '') => ({ id, waitsOn, prio: '', note: '', status: 'pendiente' as const, prUrls: [] })
 
 test('ids split into the tokens that name them elsewhere', () => {
-  expect(idTokens('ADA-864 + ADA-865 (G11)')).toEqual(['ADA-864', 'ADA-865', 'G11'])
-  expect(idTokens('H3-HUB')).toEqual(['H3-HUB'])
+  expect(idTokens('PROJ-104 + PROJ-105 (G11)')).toEqual(['PROJ-104', 'PROJ-105', 'G11'])
+  expect(idTokens('API-3')).toEqual(['API-3'])
   expect(idTokens('GET /capabilities')).toEqual(['GET /capabilities'])
 })
 
 test('Espera a resolves to plan items, by token or bare ticket number, never by prefix', () => {
-  const items = [item('ADA-814'), item('H1'), item('H1-HUB'), item('ADA-864', '814; plan review')]
-  expect(dependsOn(items[3]!, items).map(i => i.id)).toEqual(['ADA-814'])
-  expect(dependsOn(item('X', 'H1-HUB'), items).map(i => i.id)).toEqual(['H1-HUB'])
+  const items = [item('PROJ-101'), item('API1'), item('API1-SVC'), item('PROJ-104', '101; plan review')]
+  expect(dependsOn(items[3]!, items).map(i => i.id)).toEqual(['PROJ-101'])
+  expect(dependsOn(item('X', 'API1-SVC'), items).map(i => i.id)).toEqual(['API1-SVC'])
 })
 
 test('a prompt belongs to the item its ### heading names', () => {
-  const text = '## Prompts\n### P1-a · H1-HUB elegir\ncuerpo H1\n### P1-c · H3-HUB copy\ncuerpo H3\n## Verificación\nno\n'
+  const text = '## Prompts\n### P1-a · API1-SVC select\ncuerpo A1\n### P1-c · API-3 copy\ncuerpo A3\n## Verificación\nno\n'
   const prompts = parsePrompts(text)
-  expect(prompts.map(p => p.body)).toEqual(['cuerpo H1', 'cuerpo H3'])
-  expect(promptFor(item('H3-HUB'), prompts)?.body).toBe('cuerpo H3')
-  expect(promptFor(item('H1'), prompts)).toBe(undefined)
+  expect(prompts.map(p => p.body)).toEqual(['cuerpo A1', 'cuerpo A3'])
+  expect(promptFor(item('API-3'), prompts)?.body).toBe('cuerpo A3')
+  expect(promptFor(item('API1'), prompts)).toBe(undefined)
 })
 
 test('display helpers', () => {
   expect(isRedundantNote('prompt sin lanzar')).toBe(true)
   expect(isRedundantNote('Tickets creados')).toBe(true)
-  expect(isRedundantNote('PRs #559 en Ready-4-QA')).toBe(false)
-  expect([prioRank('P0 (bloquea 860)'), prioRank('P1-P2'), prioRank('')]).toEqual([0, 1, 9])
+  expect(isRedundantNote('PRs #12 en revisión')).toBe(false)
+  expect([prioRank('P0 (blocks 102)'), prioRank('P1-P2'), prioRank('')]).toEqual([0, 1, 9])
   expect(cleanTitle('Plan: llevar X')).toBe('llevar X')
 })
 
@@ -66,21 +66,21 @@ const md = `# Plan X
 ## PRs
 | PR | Estado |
 |---|---|
-| #553 | aprobado |
+| #42 | aprobado |
 ## Lo que falta
 | Prio | Estado | Id | Trabajo | Espera a |
 |---|---|---|---|---|
-| P1 | en curso — rama creada | G5 | Persistir | #450 |
+| P1 | en curso — rama creada | G5 | Persistir | #40 |
 | P2 | Prompt listo, sin lanzar | A2 | Relanzar | — |
-| P1 | hecho | H1 | Elegir | — |
-| P0 | bloqueado; espera review | ADA-863 | Tenant | Carlos |
+| P1 | hecho | API1 | Elegir | — |
+| P0 | bloqueado; espera review | PROJ-103 | Auth | Reviewer |
 `
 
 test('finds the table by its Id and Estado header, whatever the section or column order', () => {
   const snap = parsePlan(md)
   expect(snap.title).toBe('Plan X')
-  expect(snap.items.map(i => i.id)).toEqual(['G5', 'A2', 'H1', 'ADA-863'])
-  expect(snap.items[0]!).toEqual({ id: 'G5', status: 'en curso', note: 'rama creada', prio: 'P1', waitsOn: '#450', prUrls: [] })
+  expect(snap.items.map(i => i.id)).toEqual(['G5', 'A2', 'API1', 'PROJ-103'])
+  expect(snap.items[0]!).toEqual({ id: 'G5', status: 'en curso', note: 'rama creada', prio: 'P1', waitsOn: '#40', prUrls: [] })
   expect(snap.items[3]!.status).toBe('bloqueado')
   expect(snap.items[3]!.note).toBe('espera review')
 })
@@ -143,10 +143,10 @@ test('status-change toasts show the Spanish words as today in es and the display
 })
 
 test('ids and notes come out as plain text', () => {
-  const row = '# P\n| Id | Estado |\n|---|---|\n| G12 / [ADA-876](https://x/876) | hecho — [#553](https://x/553) en `main`, **ok** |\n'
+  const row = '# P\n| Id | Estado |\n|---|---|\n| G12 / [PROJ-106](https://x/106) | hecho — [#42](https://x/42) en `main`, **ok** |\n'
   const item = parsePlan(row).items[0]!
-  expect(item.id).toBe('G12 / ADA-876')
-  expect(item.note).toBe('#553 en main, ok')
+  expect(item.id).toBe('G12 / PROJ-106')
+  expect(item.note).toBe('#42 en main, ok')
 })
 
 test('PR URLs come from the raw row, Markdown link targets included, once each', () => {
@@ -157,17 +157,17 @@ test('PR URLs come from the raw row, Markdown link targets included, once each',
 test('a Nombre column gives the item its title; without one the label is the id', () => {
   const table = `| Id | Nombre | Estado |
 |---|---|---|
-| P1-a | Rechazo no reintentable | listo |
+| P1-a | Retry policy cleanup | listo |
 | P1-b |  | listo |`
   const [named, unnamed] = parsePlan(table).items
-  expect(named!.title).toBe('Rechazo no reintentable')
-  expect(labelOf(named!)).toBe('Rechazo no reintentable')
+  expect(named!.title).toBe('Retry policy cleanup')
+  expect(labelOf(named!)).toBe('Retry policy cleanup')
   expect(unnamed!.title).toBe(undefined)
   expect(labelOf(unnamed!)).toBe('P1-b')
 })
 
 test('a prompt heading lends its words after the id as the title', () => {
-  expect(titleFromHeading(item('P1-c'), 'P1-c · Rechazo no reintentable')).toBe('Rechazo no reintentable')
+  expect(titleFromHeading(item('P1-c'), 'P1-c · Retry policy cleanup')).toBe('Retry policy cleanup')
   expect(titleFromHeading(item('P1-c'), 'P1-c')).toBe(undefined)
   expect(titleFromHeading(item('P1-c'), 'otro encabezado')).toBe(undefined)
 })

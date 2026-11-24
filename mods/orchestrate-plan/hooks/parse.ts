@@ -108,17 +108,17 @@ export const statusChanges = (before: readonly WorkItem[], after: readonly WorkI
 export const plainText = (cell: string) =>
   cell.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/`([^`]*)`/g, '$1').replace(/\*\*([^*]*)\*\*/g, '$1')
 
-// An id's own tokens, the ones that name it elsewhere: "ADA-864 + ADA-865 (G11)" → ADA-864, ADA-865, G11.
+// An id's own tokens, the ones that name it elsewhere: "PROJ-104 + PROJ-105 (G11)" → PROJ-104, PROJ-105, G11.
 export const idTokens = (id: string) => {
   const tokens = id.split(/[\s+/(),:]+/).filter(t => /\d/.test(t) || /^[A-Z][\w-]*-[A-Z]+$/.test(t))
   return tokens.length ? tokens : [id]
 }
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-// A dash is part of a token, so H1 does not match inside H1-HUB.
+// A dash is part of a token, so API1 does not match inside API1-SVC.
 const mentions = (text: string, token: string) => new RegExp(`(?<![\\w-])${escape(token)}(?![\\w-])`).test(text)
 
-// The plan's items a "Espera a" cell names, by full token or by a ticket's bare number ("814" for ADA-814).
+// The plan's items a "Espera a" cell names, by full token or by a ticket's bare number ("101" for PROJ-101).
 export const dependsOn = (item: WorkItem, items: readonly WorkItem[]) =>
   items.filter(other => {
     if (other.id === item.id || !item.waitsOn) return false
@@ -155,10 +155,10 @@ export const promptFor = (item: WorkItem, prompts: readonly Prompt[]) =>
 export const isRedundantNote = (note: string) =>
   /^((prompts?|tickets?|listos?|sin|lanzar|creados?|pendientes?|y)[\s,.;]*)+$/i.test(note.trim())
 
-// "P0 (bloquea 860)" ranks 0; no P-number ranks last.
+// "P0 (blocks 102)" ranks 0; no P-number ranks last.
 export const prioRank = (prio: string) => Number(/P(\d)/i.exec(prio)?.[1] ?? 9)
 
-// "P1-c · Rechazo no reintentable" -> the words after the id; undefined when the heading is only the id.
+// "P1-c · Retry policy cleanup" -> the words after the id; undefined when the heading is only the id.
 export const titleFromHeading = (item: WorkItem, heading: string) => {
   const token = idTokens(item.id).find(t => heading.includes(t))
   if (!token) return undefined

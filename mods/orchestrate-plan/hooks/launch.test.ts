@@ -2,12 +2,12 @@ import { expect, test } from 'claude-code/testing'
 import { LAUNCH_COOLDOWN_MS, canLaunch, launchBatchInstruction, launchInstruction, launchable, sessionTitle, syncInstruction } from './launch'
 
 test('the instruction names the id, the plan file, the heading, the title prefix and the en curso update', () => {
-  const text = launchInstruction({ id: 'P1-c', title: 'Rechazo no reintentable' }, 'C:/x/plan.md', 'P1-c · H3-HUB')
+  const text = launchInstruction({ id: 'P1-c', title: 'Retry policy cleanup' }, 'C:/x/plan.md', 'P1-c · API-3')
   expect(text).toContain('para P1-c ')
   expect(text).toContain('en C:/x/plan.md ')
-  expect(text).toContain('(encabezado: P1-c · H3-HUB)')
+  expect(text).toContain('(encabezado: P1-c · API-3)')
   expect(text).toContain('start_session')
-  expect(text).toContain('el título "P1-c · Rechazo no reintentable"')
+  expect(text).toContain('el título "P1-c · Retry policy cleanup"')
   expect(text).toContain('`en curso — sesión <título> (<id de sesión local_…>)`')
 })
 
@@ -27,8 +27,8 @@ test('the batch instruction lists every id and heading in one turn, with the sam
 })
 
 test('a session title is the id, then the name when the item has one', () => {
-  expect(sessionTitle({ id: 'P3-HUB3', title: 'Regla de rechazo' })).toBe('P3-HUB3 · Regla de rechazo')
-  expect(sessionTitle({ id: 'P3-HUB3' })).toBe('P3-HUB3')
+  expect(sessionTitle({ id: 'P3-API', title: 'Retry policy rule' })).toBe('P3-API · Retry policy rule')
+  expect(sessionTitle({ id: 'P3-API' })).toBe('P3-API')
 })
 
 test('the sync instruction names the row, the plan and the reason', () => {
