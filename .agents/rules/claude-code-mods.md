@@ -61,8 +61,15 @@ Directives and invariants for developing, testing, and packaging plugins for Cla
 
 ---
 
-## 6. Pre-Push Validation & Packaging Quality Gates
+## 6. Self-Containment & Zero Local Coupling
+- **No Private/Local References:** Never reference private skills (e.g. `simpli-*`), real project ticket IDs (`ADA-*`, `H1-HUB`, etc.), or local user paths (`C:\Users\<real-user>\...`) in code, tests, bundled skills, or documentation. Use generic identifiers (`PROJ-101`, `API-1`) and synthetic paths (`C:/Users/alice/...`).
+- **Optional External Ecosystems:** All mods must operate 100% standalone. Integrations with public external repositories such as [Amiga IA (`amiga-ia`)](https://github.com/AnaCataVC/amiga-ia) must be documented as optional and linked to the public repo.
+- **Optional & Documented Local Configs:** Local user configuration files under `~/.claude/` (e.g. `context-guard.json`, `orchestrate-plan.local.md`) must always have safe zero-config fallbacks, comprehensive documentation in the mod's `README.md`, and exclusion rules in `.gitignore`.
+
+---
+
+## 7. Pre-Push Validation & Packaging Quality Gates
 - **Static Schema Validation:** Always execute `npm run validate` prior to proposing commits or PRs to guarantee that all plugin manifests (`plugin.json`), hook bindings (`hooks.json`), and type contracts satisfy Claude Code runtime requirements.
-- **Packaging Integrity:** Run `npm run package` to verify that release distribution archives (`dist/<mod>.zip`) compile cleanly and exclude development caches, temporary files, and test mocks.
+- **Packaging Integrity:** Run `npm run package` to verify that release distribution archives (`releases/<mod>.zip`) compile cleanly and exclude development caches, `.claude-plugin/types`, `tsconfig.json`, and `*.test.ts*` files.
 - **Hook Setup:** Ensure repository hooks are configured locally via `npm run prepare` (`scripts/setup-hooks.js`).
 
