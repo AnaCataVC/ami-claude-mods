@@ -21,9 +21,20 @@ A session that splits work into executor sessions keeps a Markdown plan with a w
 
 - **Only the session's primary folder is searched.** When a session is opened with several folders, the automatic search looks in the first one (the session's working directory) and the folders above it. Mods cannot see the others: the engine exposes only `$.session.cwd()`. A plan in another folder is tracked when you pass its path (`/plan-progress <path>`) or as soon as the session writes or edits that plan file.
 
-## Local rules
+## Local rules (Optional)
 
-Machine- or repo-specific launch rules go in `~/.claude/orchestrate-plan.local.md`, outside this repo. The skill reads that file before launching an executor, if it exists.
+`orchestrate-plan` works out of the box with zero external configuration. If you have machine- or repository-specific launch rules (such as repositories where executors must leave changes uncommitted, repositories that should be launched from the CLI instead of `start_session`, or ticket-only prompt conventions), you can optionally place them in `~/.claude/orchestrate-plan.local.md` (`%USERPROFILE%\.claude\orchestrate-plan.local.md` on Windows), outside this repository.
+
+When `~/.claude/orchestrate-plan.local.md` exists, the `orchestrate-plan` skill reads it before launching an executor session; if the file is absent, the skill proceeds with its standard launch flow.
+
+Example `~/.claude/orchestrate-plan.local.md`:
+
+```markdown
+# Local Orchestrator Rules
+
+- **No-commit repositories:** For items targeting `~/work/legacy-api`, instruct executors not to create commits or branches; leave changes in the working tree for manual review.
+- **Model overrides:** Use `sonnet` for documentation-only items and `opus` for cross-service migrations.
+```
 
 ## Tests
 

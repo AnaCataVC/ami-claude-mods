@@ -4,9 +4,9 @@
 
 In autonomous AI pair-programming, Test-Driven Development (TDD) suffers from confirmation bias when test writers inspect source code implementations before drafting assertions. 
 
-Under the **Double-Blind Cleanroom** protocol (orchestrated via `ami-orchestrate-cleanroom` from Amiga IA and enforced by `cleanroom-guard`):
-- The **Builder** (`ami-cleanroom-builder`, `code-implementer-jr`) writes production code against a formal contract and is strictly barred from viewing or editing test files.
-- The **Tester** (`ami-cleanroom-tester`, `test-writer-jr`) writes automated tests against the contract and is strictly barred from inspecting production implementation diffs.
+Under the **Double-Blind Cleanroom** protocol (enforced standalone by `cleanroom-guard`, with optional orchestration via `ami-orchestrate-cleanroom` from [Amiga IA](https://github.com/AnaCataVC/amiga-ia)):
+- The **Builder** (`cleanroom-builder`, `code-implementer`, `code-implementer-jr`, `ami-cleanroom-builder`) writes production code against a formal contract and is strictly barred from viewing or editing test files.
+- The **Tester** (`cleanroom-tester`, `test-writer`, `test-writer-jr`, `ami-cleanroom-tester`) writes automated tests against the contract and is strictly barred from inspecting production implementation diffs.
 
 To enforce these boundaries, `cleanroom-guard` intercepts tool execution calls (`tool.call` for `Read`, `Grep`, `Glob`, `Write`, `Edit`, `Bash`, `PowerShell`) and inspects the identity of the calling agent.
 

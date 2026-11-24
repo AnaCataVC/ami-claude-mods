@@ -74,13 +74,13 @@ declare module 'claude-code' {
 
 En el desarrollo guiado por pruebas (TDD), el aislamiento de información entre el implementador y el autor de pruebas es fundamental para evitar el sesgo de confirmación.
 
-`cleanroom-guard` conecta los subagentes de Claude Code con la skill `ami-orchestrate-cleanroom` de Amiga IA:
+`cleanroom-guard` funciona de forma autónoma con roles de subagentes Cleanroom genéricos y se integra opcionalmente con la skill `ami-orchestrate-cleanroom` de [Amiga IA (`amiga-ia`)](https://github.com/AnaCataVC/amiga-ia):
 
 1. **Límite del Implementador:**
-   - Rol: `ami-cleanroom-builder` o `code-implementer-jr`.
+   - Rol: `cleanroom-builder`, `code-implementer`, `code-implementer-jr` o `ami-cleanroom-builder`.
    - Bloqueado: Cualquier lectura, búsqueda o edición sobre rutas de pruebas (`tests/`, `__tests__/`, `*.test.*`, `*_test.*`, `spec/`).
 2. **Límite del Autor de Pruebas:**
-   - Rol: `ami-cleanroom-tester` o `test-writer-jr`.
+   - Rol: `cleanroom-tester`, `test-writer`, `test-writer-jr` o `ami-cleanroom-tester`.
    - Bloqueado: Lectura de diffs del working tree sin commitear (`git diff`) o código de producción (`.py`, `.ts`, `.go`, etc.).
    - Permitido: Redacción de pruebas y lectura de versiones base commiteadas mediante `git show HEAD:<path>`.
 

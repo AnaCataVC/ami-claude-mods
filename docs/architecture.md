@@ -74,13 +74,13 @@ declare module 'claude-code' {
 
 In Test-Driven Development (TDD), information isolation between implementer and tester is critical.
 
-`cleanroom-guard` bridges Claude Code subagents with `ami-orchestrate-cleanroom` from Amiga IA:
+`cleanroom-guard` works standalone with generic Cleanroom subagent roles and optionally bridges Claude Code subagents with `ami-orchestrate-cleanroom` from [Amiga IA (`amiga-ia`)](https://github.com/AnaCataVC/amiga-ia):
 
 1. **Implementer Boundary:**
-   - Role: `ami-cleanroom-builder` or `code-implementer-jr`.
+   - Role: `cleanroom-builder`, `code-implementer`, `code-implementer-jr`, or `ami-cleanroom-builder`.
    - Blocked: Any read, search, or edit operation targeting test paths (`tests/`, `__tests__/`, `*.test.*`, `*_test.*`, `spec/`).
 2. **Tester Boundary:**
-   - Role: `ami-cleanroom-tester` or `test-writer-jr`.
+   - Role: `cleanroom-tester`, `test-writer`, `test-writer-jr`, or `ami-cleanroom-tester`.
    - Blocked: Reading uncommitted working tree diffs (`git diff`) or production source files (`.py`, `.ts`, `.go`, etc.).
    - Allowed: Writing tests and reading base committed versions via `git show HEAD:<path>`.
 

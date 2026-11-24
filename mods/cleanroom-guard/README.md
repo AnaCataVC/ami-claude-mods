@@ -8,6 +8,6 @@ In traditional agent workflows, automated test writers inspect production implem
 
 ## Rules Enforced
 
-- **Implementers (`ami-cleanroom-builder`, `code-implementer-jr`):** Strictly blocked from reading, searching, or writing test files (`tests/`, `*.test.ts`, `*_test.go`, etc.).
-- **Test Authors (`ami-cleanroom-tester`, `test-writer-jr`):** Strictly blocked from reading uncommitted production source files or writing non-test code.
-- **Contract Driven:** Compatible with `ami-orchestrate-cleanroom` from Amiga IA and general Cleanroom workflows.
+- **Implementers (`cleanroom-builder`, `code-implementer`, `code-implementer-jr`, `ami-cleanroom-builder`):** Strictly blocked from reading, searching, or writing test files (`tests/`, `*.test.ts`, `*_test.go`, etc.).
+- **Test Authors (`cleanroom-tester`, `test-writer`, `test-writer-jr`, `ami-cleanroom-tester`):** Strictly blocked from reading uncommitted production source files or writing non-test code.
+- **Standalone & Ecosystem Ready:** Works standalone with any subagent matching the Cleanroom role names above, and integrates optionally with `ami-orchestrate-cleanroom` from [Amiga IA (`amiga-ia`)](https://github.com/AnaCataVC/amiga-ia).
