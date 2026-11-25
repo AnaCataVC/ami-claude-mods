@@ -1,5 +1,5 @@
 > **Created:** 2026-10-31
-> **Last Updated:** 2026-11-02
+> **Last Updated:** 2026-11-25
 
 # Claude Desktop & Claude Code Mods Architecture
 
@@ -94,6 +94,8 @@ export const register: Register = (on, options) => {
 | `session.receive`| None | Inbound cross-session / peer messaging | Intercept and record peer messages |
 | `tool.call` | `{ tool: string \| RegExp }` | Pre-tool invocation interceptor | Deny execution (`return { deny: reason }`), modify, or audit |
 | `prompt.submit` | None | Triggered when user submits prompt | Reset turn-based counters, inspect prompt input |
+| `session.measure` | None | Triggered when engine measures session usage and a unit moved (`context`, `rateLimits`, `cost`) | Observe context fill, rate-limit windows (`five_hour`, `seven_day`, `spend_limit`), and session cost |
+| `turn.complete` | None | Triggered when a model turn ends (main loop or subagent via `e.agentId`) | Inspect turn duration, token counts (`e.usage: TurnUsage`), or append summary |
 | `command.run` | `{ command: string }` | Triggered when slash command runs | Execute command logic, open custom panes |
 | `ui.render` | `{ component: 'AbovePrompt' \| 'Pane' \| ... }` | Dynamic terminal UI rendering | Return Ink-compatible JSX element tree |
 
@@ -126,7 +128,39 @@ The Engine Interface (`EngineInterface`) provides secure abstractions:
   - `$.fs.read(path)` / `$.fs.exists(path)` / `$.fs.list(path)`: Safe filesystem calls.
   - `$.env.get(varName)`: Read environment variables.
   - `$.session.cwd()` / `$.session.id()`: Get current session context.
-  - `$.agent.list()`: Inspect active subagents and their IDs/types.
+  - `$.session.usage(args?)`: Read `{ startedAt, context, rateLimits, cost }`.
+  - `$.agent.list()`: Inspect active subagents and their IDs, types, `tokenCount`, `usage` (`TurnUsage[]`), and `cost`.
+
+---
+
+## 4.1. Session Usage, Quota Rate Limits & Token Accounting (`2.1.332+`)
+
+The engine exposes three distinct usage dimensions via `$.session.usage()` and the `session.measure` event (`SessionMeasureInput`):
+
+1. **Account Rate-Limit Windows (`rateLimits: SessionRateLimit[]`):**
+   - Reported by Anthropic API response headers on subscription plans (empty off a subscription or before the first API reading).
+   - Each entry contains:
+     - `kind`: `'five_hour'` (rolling 5-hour burst window), `'seven_day'` (weekly sustained window), or `'spend_limit'` (gateway token-estimated spend cap).
+     - `percentUsed`: `number` from `0` to `100` with at most one decimal (`23.5`, `7`), or `> 100` when a spend limit is exceeded.
+     - `resetsAt?: string`: ISO 8601 timestamp when the window resets.
+   - **Important Scope Note:** `rateLimits` values are **account-wide** (spanning Claude Desktop, CLI, and web sessions). However, `session.measure` fires locally after each main-thread turn and whenever a rate-limit window moves a whole point (`e.changed.includes('rateLimits')`).
+   - To measure how much quota percentage was consumed by the **current session**:
+     - **Baseline Delta (`currentPercent - startPercent`):** Record the initial `percentUsed` (and `resetsAt`) on the first reading of the session. If `resetsAt` changes mid-session (window rollover), reset the baseline to `0`.
+     - **Share of Consumed Quota (`(sessionDelta / currentPercent) * 100`):** Expresses what percentage of the currently consumed quota window occurred during this session.
+
+2. **Live Context Window Fill (`context: SessionContextUsage`):**
+   - Tracks the current session's active context window against the model's limit:
+     - `tokens?: number`: Input tokens of the last API response (`input_tokens + cache_creation_input_tokens + cache_read_input_tokens`).
+     - `window: number`: Model context window size in tokens.
+     - `percent?: number`: `tokens / window` as a whole percentage (`0` to `100`).
+   - Calling `$.session.usage({ breakdown: 'summary' | 'full' })` populates `context.breakdown` (`SessionContextBreakdown`), itemizing categories (`System prompt`, `System tools`, `Memory files`, `Messages`, `Free space`, `Auto-compact buffer`) with each category's `percentage` of the window.
+
+3. **Per-Turn & Subagent Token / Cost Attribution (`TurnUsage`, `AgentInfo`, `SessionCost`):**
+   - `turn.complete` provides `e.usage?: TurnUsage` (`input_tokens`, `output_tokens`, `cache_read_input_tokens`, `cache_creation_input_tokens`, `model`) and `e.agentId?: string` (`undefined` on the main loop; set to the subagent's ID for in-process `Agent` runs).
+   - `$.agent.list()` returns `AgentInfo[]` for in-process subagents and teammates, where each agent carries its own `tokenCount`, `contextWindowSize`, `usage?: TurnUsage[]`, and `cost?: SessionCost`.
+   - **Separate Child Sessions vs. In-Process Subagents:**
+     - **Separate Child Sessions** (launched as independent `claude` processes, e.g., via `orchestrate-plan` or desktop sessions) run their own isolated engine instance, status bar, `$.state` atoms, and `session.start` lifecycle. They do **not** share `turn.complete` or `context` with the parent session, though they share account-wide `rateLimits` from the server.
+     - **In-Process Subagents** (spawned via the `Agent` tool within a single session) share the host process and trigger `turn.complete` with `e.agentId !== undefined`, while keeping their own isolated `contextWindowSize` and `usage` array in `$.agent.list()`.
 
 ---
 

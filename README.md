@@ -22,7 +22,7 @@
 
 While widely used in terminal sessions via the CLI, `ami-claude-mods` is designed as a first-class companion for **Claude Desktop**—serving as a primary daily-driver environment where side panes (`Pane`), banners (`AbovePrompt`), status gauges, and toast alerts render as native desktop GUI controls.
 
-This repository provides eight decoupled, privacy-safe, and self-contained plugins designed to enhance reliability, visibility, and safety without modifying Claude core binaries.
+This repository provides nine decoupled, privacy-safe, and self-contained plugins designed to enhance reliability, visibility, and safety without modifying Claude core binaries.
 
 ---
 
@@ -38,6 +38,7 @@ This repository provides eight decoupled, privacy-safe, and self-contained plugi
 | **[`context-guard`](mods/context-guard)** | `tool.call`, `session.start`, `ui.render` | Status Bar & `AbovePrompt` | Multi-profile guard that aligns active GitHub CLI accounts with target workspaces and forbids bare `kubectl` on production clusters. |
 | **[`orchestrate-plan`](mods/orchestrate-plan)** | `tool.call`, `command.run`, `ui.render` | Side Pane, Status Bar & Toast | Live progress pane for an orchestrator's `plan.md` (`/plan-progress`), plus the skill that keeps the plan in the contract the pane reads and launches executor sessions. |
 | **[`quota-pace`](mods/quota-pace)** | `session.start`, `session.measure` | Status Bar & Toast | Paces the weekly usage limit across your workdays (20% per day on Mon–Fri by default) and warns once a day when usage passes today's target. |
+| **[`session-share`](mods/session-share)** | `session.start`, `turn.start`, `turn.complete`, `session.measure`, `session.end` | Status Bar | Shows what percentage of your consumed 5-hour and 7-day quota was spent in the current main session, excluding nested or parallel sessions. |
 
 ---
 
@@ -87,6 +88,7 @@ flowchart TD
 | `context-guard` | `tool.call` (`kubectl`, `git`), `session.start` | Prevents cluster-wide mutations by requiring explicit `--context`. |
 | `orchestrate-plan` | `tool.call`, `command.run`, `ui.render` | Reconciles `plan.md` tasks against live sessions and merged PRs without mutating the file. |
 | `quota-pace` | `session.start`, `session.measure` | Calculates workday pacing against the 7-day rate limit window without network calls. |
+| `session-share` | `session.start`, `turn.start`, `turn.complete`, `session.measure`, `session.end` | Attributes 5-hour and 7-day quota consumption to the active main session without counting nested or parallel sessions. |
 
 ---
 

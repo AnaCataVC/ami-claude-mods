@@ -1,0 +1,9 @@
+{
+  "name": "session-share",
+  "version": "0.1.0",
+  "description": "Shows what percentage of your consumed 5-hour and 7-day Claude quota was spent in the current session, isolated from nested or parallel sessions",
+  "author": {
+    "name": "Catalina Villalobos"
+  },
+  "types": "./types/index.d.ts"
+}

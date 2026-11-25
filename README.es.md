@@ -22,7 +22,7 @@
 
 Aunque se utilizan ampliamente en sesiones de terminal mediante la CLI, `ami-claude-mods` está diseñado como un complemento de primera clase para **Claude Desktop**—sirviendo como entorno de uso diario principal donde los paneles laterales (`Pane`), banners (`AbovePrompt`), medidores de estado y notificaciones toast se integran como controles nativos de la interfaz gráfica.
 
-Este repositorio proporciona ocho plugins desacoplados, seguros para la privacidad y autocontenidos, orientados a maximizar la confiabilidad, visibilidad y seguridad sin necesidad de modificar los binarios base de Claude.
+Este repositorio proporciona nueve plugins desacoplados, seguros para la privacidad y autocontenidos, orientados a maximizar la confiabilidad, visibilidad y seguridad sin necesidad de modificar los binarios base de Claude.
 
 ---
 
@@ -38,6 +38,7 @@ Este repositorio proporciona ocho plugins desacoplados, seguros para la privacid
 | **[`context-guard`](mods/context-guard)** | `tool.call`, `session.start`, `ui.render` | Barra de Estado y `AbovePrompt` | Guarda de seguridad multientorno que alinea la cuenta activa en GitHub CLI con el directorio de trabajo y bloquea comandos `kubectl` sin contexto en clústeres productivos. |
 | **[`orchestrate-plan`](mods/orchestrate-plan)** | `tool.call`, `command.run`, `ui.render` | Panel Lateral, Barra de Estado y Toast | Panel en vivo con el avance del `plan.md` de una sesión orquestadora (`/plan-progress`), más la skill que mantiene el plan en el contrato que lee el panel y lanza las sesiones ejecutoras. |
 | **[`quota-pace`](mods/quota-pace)** | `session.start`, `session.measure` | Barra de estado y Toast | Reparte el límite semanal de uso entre tus días laborales (20% por día de lunes a viernes por defecto) y avisa una vez al día cuando pasas la meta de hoy. |
+| **[`session-share`](mods/session-share)** | `session.start`, `turn.start`, `turn.complete`, `session.measure`, `session.end` | Barra de Estado | Muestra qué porcentaje de la cuota consumida en las ventanas de 5 horas y 7 días corresponde a la sesión principal actual, sin incluir sesiones anidadas o paralelas. |
 
 ---
 
@@ -87,6 +88,7 @@ flowchart TD
 | `context-guard` | `tool.call` (`kubectl`, `git`), `session.start` | Previene mutaciones globales exigiendo el parámetro `--context`. |
 | `orchestrate-plan` | `tool.call`, `command.run`, `ui.render` | Concilia las tareas de `plan.md` con sesiones activas y PRs fusionados sin mutar el archivo. |
 | `quota-pace` | `session.start`, `session.measure` | Modela el ritmo de uso laboral contra la ventana de 7 días sin realizar peticiones de red. |
+| `session-share` | `session.start`, `turn.start`, `turn.complete`, `session.measure`, `session.end` | Atribuye el consumo de cuota de 5 horas y 7 días a la sesión principal activa sin contabilizar sesiones anidadas o paralelas. |
 
 ---
 
