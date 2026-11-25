@@ -30,7 +30,7 @@ test('custom workdays and invalid specs', async () => {
 
 test('status line shows margin and flags overuse', async () => {
   const pace = computePace(47, at(4), MON_TO_FRI)
-  expect(statusLine(pace, 'es')).toBe('✓ 47% de 60% hoy')
-  expect(statusLine(computePace(57, at(4), MON_TO_FRI), 'en')).toBe('⚠ 57% of 60% today')
-  expect(statusLine(computePace(65, at(4), MON_TO_FRI), 'es')).toBe('✕ 65% de 60% hoy (+5)')
+  expect(statusLine(pace, 'es')).toBe('✓ 47/60% hoy')
+  expect(statusLine(computePace(57, at(4), MON_TO_FRI), 'en')).toBe('⚠ 57/60% today')
+  expect(statusLine(computePace(65, at(4), MON_TO_FRI), 'es')).toBe('✕ 65/60% hoy (+5)')
 })

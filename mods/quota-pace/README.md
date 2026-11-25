@@ -7,11 +7,11 @@ Spread your weekly Claude usage limit evenly across the days you actually work.
 On a subscription, Claude reports how much of the 7-day usage window you have used. `quota-pace` turns that number into a daily target. Each workday in the window gets an equal share. With the default Monday–Friday schedule, that means 20% by the end of Monday, 40% by Tuesday, 60% by Wednesday, and so on. The status line shows where you stand against today's target, and a toast warns you once per day when you go past it.
 
 ```
-✓ 47% of 60% today
+✓ 47/60% today
 ```
 
 - First number: weekly limit used · second: today's target
-- `✓` 5 or more points left · `⚠` under 5 points left · `✕` over today's target, with the overrun in parentheses: `✕ 65% of 60% today (+5)`
+- `✓` 5 or more points left · `⚠` under 5 points left · `✕` over today's target, with the overrun in parentheses: `✕ 65/60% today (+5)`
 
 ## How it works
 

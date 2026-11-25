@@ -9,11 +9,11 @@ export function langFrom(raw: string | undefined | null): Language {
 
 const TEXT = {
   en: {
-    line: (p: Pace) => `${p.usedPercent}% of ${p.targetPercent}% today`,
+    line: (p: Pace) => `${p.usedPercent}/${p.targetPercent}% today`,
     crossed: (p: Pace) => `Daily target passed · ${p.usedPercent}% of your weekly limit used (target ${p.targetPercent}%)`,
   },
   es: {
-    line: (p: Pace) => `${p.usedPercent}% de ${p.targetPercent}% hoy`,
+    line: (p: Pace) => `${p.usedPercent}/${p.targetPercent}% hoy`,
     crossed: (p: Pace) => `Meta del día superada · llevas ${p.usedPercent}% de tu límite semanal (meta ${p.targetPercent}%)`,
   },
 } as const
