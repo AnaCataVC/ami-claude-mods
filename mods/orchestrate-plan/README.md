@@ -17,6 +17,11 @@ A session that splits work into executor sessions keeps a Markdown plan with a w
 - `/plan-progress <path>` tracks any plan file.
 - Ask Claude to "orchestrate this plan" to load the skill.
 
+## Drift Detection & Session Matching
+
+- **Session matching:** Executor sessions launched from the pane are titled `<id> · <Nombre>` (or `<id1> + <id2> · <Nombre>` when one session covers several rows). When matching live sessions to rows, the pane accepts `·`, ` - ` (hyphen surrounded by spaces), `–`, `—`, or `:` as the separator between the ID prefix and the title, so hyphenated IDs (`P1-b`) remain intact even in multi-ID session titles (`P1-b + P1-c - Title`).
+- **Merged PR drift:** To avoid false alarms when an open row mentions earlier merged PRs in its free `Estado` note, PR drift checks take PR URLs from the `Espera a` column when present (falling back to the row's URLs otherwise) and only flag a drift when the **last** listed PR is `MERGED`.
+
 ## Known limitations
 
 - **Only the session's primary folder is searched.** When a session is opened with several folders, the automatic search looks in the first one (the session's working directory) and the folders above it. Mods cannot see the others: the engine exposes only `$.session.cwd()`. A plan in another folder is tracked when you pass its path (`/plan-progress <path>`) or as soon as the session writes or edits that plan file.

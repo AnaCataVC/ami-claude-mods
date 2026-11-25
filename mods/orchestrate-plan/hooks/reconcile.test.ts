@@ -29,8 +29,10 @@ const session = (name: string, status: string, idleFor = 0) => ({ name, status, 
 test('a session names an item exactly: the id alone or followed by a separator, never a longer id', () => {
   expect(namesItem('P1-b', 'P1-b')).toBe(true)
   expect(namesItem('P1-b · Consolidación', 'P1-b')).toBe(true)
+  expect(namesItem('P1-b - Consolidación', 'P1-b')).toBe(true)
   expect(namesItem('P1-b: algo', 'P1-b')).toBe(true)
   expect(namesItem('P1-b—algo', 'P1-b')).toBe(true)
+  expect(namesItem('P1-b–algo', 'P1-b')).toBe(true)
   expect(namesItem('P1-b1 · otra', 'P1-b')).toBe(false)
   expect(namesItem('P1-b-fix', 'P1-b')).toBe(false)
   expect(namesItem('revisar P1-b', 'P1-b')).toBe(false)
@@ -39,10 +41,16 @@ test('a session names an item exactly: the id alone or followed by a separator, 
 test('a session covering several rows names each id before the separator', () => {
   expect(namesItem('T2.2 + T3.1 · Batch import and template', 'T2.2')).toBe(true)
   expect(namesItem('T2.2 + T3.1 · Batch import and template', 'T3.1')).toBe(true)
+  expect(namesItem('T2.2 + T3.1 - Batch import and template', 'T2.2')).toBe(true)
+  expect(namesItem('T2.2 + T3.1 - Batch import and template', 'T3.1')).toBe(true)
+  expect(namesItem('P1-b + P1-c - Consolidación y limpieza', 'P1-b')).toBe(true)
+  expect(namesItem('P1-b + P1-c - Consolidación y limpieza', 'P1-c')).toBe(true)
+  expect(namesItem('P1-b + P1-c - Consolidación y limpieza', 'P1')).toBe(false)
   expect(namesItem('F1 + F2 + F4 · Name resolution', 'F2')).toBe(true)
   expect(namesItem('F1 + F2 + F4 · Name resolution', 'F3')).toBe(false)
   expect(namesItem('T2.2 + T3.1 · Batch import and template', 'T3')).toBe(false)
   expect(namesItem('F1 · Tags + F2 in title', 'F2')).toBe(false)
+  expect(namesItem('F1 - Tags + F2 in title', 'F2')).toBe(false)
 })
 
 test('a registry entry needs a name; statusUpdatedAt falls back to updatedAt', () => {
@@ -70,12 +78,16 @@ test('listo or pendiente with a busy matched session drifts; idle does not', () 
   expect(driftOf(item('P2', 'bloqueado'), [session('P2', 'busy')], {}, NOW)).toBe(undefined)
 })
 
-test('a merged PR drifts any item not yet hecho; other states or hecho do not', () => {
-  const url = 'https://github.com/o/r/pull/1'
-  expect(driftOf(item('X', 'bloqueado', { prUrls: [url] }), [], { [url]: 'MERGED' }, NOW)).toBeDefined()
-  expect(driftOf(item('X', 'hecho', { prUrls: [url] }), [], { [url]: 'MERGED' }, NOW)).toBe(undefined)
-  expect(driftOf(item('X', 'listo', { prUrls: [url] }), [], { [url]: 'OPEN' }, NOW)).toBe(undefined)
-  expect(driftOf(item('X', 'listo', { prUrls: [url] }), [], {}, NOW)).toBe(undefined)
+test('only the last PR drifts an open item when merged; an earlier merged PR followed by an open one does not', () => {
+  const url1 = 'https://github.com/o/r/pull/1'
+  const url2 = 'https://github.com/o/r/pull/2'
+  expect(driftOf(item('X', 'bloqueado', { prUrls: [url1] }), [], { [url1]: 'MERGED' }, NOW)).toBeDefined()
+  expect(driftOf(item('X', 'bloqueado', { prUrls: [url1, url2] }), [], { [url1]: 'MERGED', [url2]: 'OPEN' }, NOW)).toBe(undefined)
+  expect(driftOf(item('X', 'bloqueado', { prUrls: [url1, url2] }), [], { [url1]: 'MERGED' }, NOW)).toBe(undefined)
+  expect(driftOf(item('X', 'bloqueado', { prUrls: [url1, url2] }), [], { [url1]: 'MERGED', [url2]: 'MERGED' }, NOW)).toBeDefined()
+  expect(driftOf(item('X', 'hecho', { prUrls: [url1] }), [], { [url1]: 'MERGED' }, NOW)).toBe(undefined)
+  expect(driftOf(item('X', 'listo', { prUrls: [url1] }), [], { [url1]: 'OPEN' }, NOW)).toBe(undefined)
+  expect(driftOf(item('X', 'listo', { prUrls: [url1] }), [], {}, NOW)).toBe(undefined)
 })
 
 test('drifts come out in table order, one per drifting item', () => {

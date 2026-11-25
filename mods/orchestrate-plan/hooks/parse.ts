@@ -71,8 +71,11 @@ export const parsePlan = (text: string, lang: Lang = 'en') => {
       note: plainText(note),
       prio: col.prio >= 0 ? row[col.prio] ?? '' : '',
       waitsOn: col.waitsOn >= 0 ? row[col.waitsOn] ?? '' : '',
-      // From the raw row: plainText drops a Markdown link's URL.
-      prUrls: prUrlsIn(line),
+      // If Espera a names PR URLs, those are the PRs the row waits on; otherwise fall back to the raw row.
+      prUrls: (() => {
+        const waitUrls = col.waitsOn >= 0 ? prUrlsIn(row[col.waitsOn] ?? '') : []
+        return waitUrls.length > 0 ? waitUrls : prUrlsIn(line)
+      })(),
     })
   }
   return { title, items, violations }

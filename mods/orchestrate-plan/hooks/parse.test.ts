@@ -149,9 +149,13 @@ test('ids and notes come out as plain text', () => {
   expect(item.note).toBe('#42 en main, ok')
 })
 
-test('PR URLs come from the raw row, Markdown link targets included, once each', () => {
+test('PR URLs come from Espera a when it holds any, otherwise from the raw row once each', () => {
   const row = '# P\n| Id | Estado |\n|---|---|\n| G1 | en curso — [#9](https://github.com/o/r/pull/9), https://github.com/o/r/pull/9 y https://github.com/o/r/issues/3 |\n'
   expect(parsePlan(row).items[0]!.prUrls).toEqual(['https://github.com/o/r/pull/9'])
+
+  const withWaitsOn =
+    '# P\n| Id | Estado | Espera a |\n|---|---|---|\n| G1 | bloqueado — [#9](https://github.com/o/r/pull/9) mergeado | [#12](https://github.com/o/r/pull/12) |\n'
+  expect(parsePlan(withWaitsOn).items[0]!.prUrls).toEqual(['https://github.com/o/r/pull/12'])
 })
 
 test('a Nombre column gives the item its title; without one the label is the id', () => {

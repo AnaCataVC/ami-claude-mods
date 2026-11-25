@@ -24,11 +24,11 @@ export const parseRegistryEntry = (text: string): LiveSession | undefined => {
 }
 
 // Exact: the name is the id, or starts with it followed by a separator, so P1-b never claims P1-b1.
-// One session covering several rows lists their ids joined by "+" before the separator ("T2.2 + T3.1 · …").
+// One session covering several rows lists their ids joined by "+" before the separator ("T2.2 + T3.1 · …" or "T2.2 + T3.1 - …").
 export const namesItem = (sessionName: string, id: string) =>
   sessionName === id ||
-  (sessionName.startsWith(id) && /^[\s·:—]/.test(sessionName.slice(id.length))) ||
-  sessionName.split(/[·:—]/)[0].split('+').some(part => part.trim() === id)
+  (sessionName.startsWith(id) && /^[\s·:—–]/.test(sessionName.slice(id.length))) ||
+  (sessionName.split(/[·:—–]|\s+-\s+/)[0] ?? '').split('+').some(part => part.trim() === id)
 
 export const ago = (since: number, now: number, lang: Lang = 'en') => {
   const text = t(lang)
@@ -49,7 +49,8 @@ export const driftOf = (
   lang: Lang = 'en',
 ) => {
   const text = t(lang)
-  if (!isClosed(item.status) && item.prUrls.some(url => prStates[url] === 'MERGED')) return text.driftMerged
+  const lastPr = item.prUrls.at(-1)
+  if (!isClosed(item.status) && lastPr !== undefined && prStates[lastPr] === 'MERGED') return text.driftMerged
   const own = sessions.filter(s => namesItem(s.name, item.id))
   if (item.status === 'en curso') {
     if (!own.length) return text.driftNoSession

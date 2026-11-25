@@ -9,7 +9,7 @@ export type WorkItem = {
   // undefined when the Estado cell does not start with a PlanStatus word.
   status?: PlanStatus
   note: string
-  // GitHub PR URLs anywhere in the row, Markdown link targets included.
+  // GitHub PR URLs for drift checks: from the Espera a column when present, else from the row.
   prUrls: string[]
 }
 

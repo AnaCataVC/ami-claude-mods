@@ -214,7 +214,14 @@ const reconcile = async ($: EngineInterface) => {
   try {
     await writeDrifts($)
     const snap = await read($, plan)
-    const urls = snap ? snap.items.filter(i => i.status !== 'hecho' && i.status !== 'cancelado').flatMap(i => i.prUrls) : []
+    const urls = snap
+      ? snap.items
+          .filter(i => i.status !== 'hecho' && i.status !== 'cancelado')
+          .flatMap(i => {
+            const last = i.prUrls.at(-1)
+            return last ? [last] : []
+          })
+      : []
     if (await refreshPrStates($, [...new Set(urls)])) await writeDrifts($)
   } finally {
     isReconciling = false
