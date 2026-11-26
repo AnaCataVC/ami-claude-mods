@@ -109,13 +109,13 @@ test('status line stays under 32 characters and supports English and Spanish', a
   // 5h: 20/40 = 50%, 7d: 10/50 = 20% -> maxShare = 50 -> warning glyph
   const lineEn = statusLine(snap, 'en')
   const lineEs = statusLine(snap, 'es')
-  expect(lineEn).toBe('⚠ here 50%·20%')
-  expect(lineEs).toBe('⚠ aquí 50%·20%')
+  expect(lineEn).toBe('⚠ 50% 5h·20% 7d')
+  expect(lineEs).toBe('⚠ 50% 5h·20% 7d')
   expect((lineEn ?? '').length).toBeLessThanOrEqual(32)
 
   // Single window formatting
   const onlyFive = statusLine({ fiveHour: snap.fiveHour }, 'es')
-  expect(onlyFive).toBe('⚠ aquí 50% 5h')
+  expect(onlyFive).toBe('⚠ 50% 5h')
   expect((onlyFive ?? '').length).toBeLessThanOrEqual(32)
 
   // High share (>= 80%) uses ✕
@@ -126,5 +126,5 @@ test('status line stays under 32 characters and supports English and Spanish', a
     },
     'en',
   )
-  expect(highLine).toBe('✕ here 85%·10%')
+  expect(highLine).toBe('✕ 85% 5h·10% 7d')
 })

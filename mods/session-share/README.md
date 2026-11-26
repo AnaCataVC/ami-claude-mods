@@ -7,10 +7,10 @@ See what percentage of your consumed 5-hour and 7-day Claude quota was spent in 
 When working across multiple Claude Desktop tabs, CLI terminals, or nested executor sessions, the account-wide usage percentages reported by Claude (`five_hour` and `seven_day`) combine everything your account has consumed. `session-share` attributes quota consumption strictly to the current main session and displays the proportion (`0%`–`100%`) of your total consumed quota that happened here:
 
 ```
-✓ here 25%·10%
+✓ 25% 5h·10% 7d
 ```
 
-- First number: share of your currently consumed 5-hour window spent in this session · second: same for the 7-day window. With only one window reported: `✓ here 25% 5h`. In Spanish, `here` is `aquí`.
+- First part: share of your currently consumed 5-hour window spent in this session · second part: same for the 7-day window. With only one window reported: `✓ 25% 5h`.
 - `✓` under 50% of consumed quota · `⚠` 50%–79% · `✕` 80% or more of your consumed quota came from this session
 
 ## How it works

@@ -9,14 +9,14 @@ export function langFrom(raw: string | undefined | null): Language {
 
 const TEXT = {
   en: {
-    both: (five: number, seven: number) => `here ${five}%·${seven}%`,
-    fiveOnly: (five: number) => `here ${five}% 5h`,
-    sevenOnly: (seven: number) => `here ${seven}% 7d`,
+    both: (five: number, seven: number) => `${five}% 5h·${seven}% 7d`,
+    fiveOnly: (five: number) => `${five}% 5h`,
+    sevenOnly: (seven: number) => `${seven}% 7d`,
   },
   es: {
-    both: (five: number, seven: number) => `aquí ${five}%·${seven}%`,
-    fiveOnly: (five: number) => `aquí ${five}% 5h`,
-    sevenOnly: (seven: number) => `aquí ${seven}% 7d`,
+    both: (five: number, seven: number) => `${five}% 5h·${seven}% 7d`,
+    fiveOnly: (five: number) => `${five}% 5h`,
+    sevenOnly: (seven: number) => `${seven}% 7d`,
   },
 } as const
 
